@@ -11,18 +11,24 @@ import {
   Mail,
   Calendar,
   Shield,
-  Edit
+  Edit,
+  Table,
+  Users
 } from 'lucide-react'
 import apiClient from '@/api/client'
 import { toastHelpers } from '@/lib/toast-helpers'
 import { UserForm } from '@/components/forms/UserForm'
+import { AdminStaffTable } from '@/components/admin/AdminStaffTable'
 import { PaginationControlsComponent } from '@/components/ui/pagination-controls'
 import { usePagination } from '@/hooks/usePagination'
 import { UserListSkeleton, SearchingSkeleton } from '@/components/ui/skeletons'
 import { PageLoading, InlineLoading } from '@/components/ui/loading-spinner'
 import type { User } from '@/types'
 
+type DisplayMode = 'table' | 'cards'
+
 export function AdminStaffManagement() {
+  const [displayMode, setDisplayMode] = useState<DisplayMode>('table')
   const [searchTerm, setSearchTerm] = useState('')
   const [debouncedSearch, setDebouncedSearch] = useState('')
   const [showCreateForm, setShowCreateForm] = useState(false)
@@ -64,13 +70,6 @@ export function AdminStaffManagement() {
   // Extract data and pagination info
   const users = Array.isArray(usersData) ? usersData : (usersData as any)?.data || []
   const paginationInfo = (usersData as any)?.pagination || { total: 0 }
-
-  // Update pagination total (commented out as pagination handles this internally)
-  // useEffect(() => {
-  //   if (paginationInfo.total !== undefined) {
-  //     // Total is updated automatically by the pagination hook
-  //   }
-  // }, [paginationInfo.total])
 
   // Delete user mutation (keep existing functionality)  
   const deleteUserMutation = useMutation({
@@ -165,10 +164,33 @@ export function AdminStaffManagement() {
             Manage your restaurant staff and their permissions
           </p>
         </div>
-        <Button onClick={() => setShowCreateForm(true)} className="gap-2">
-          <UserPlus className="h-4 w-4" />
-          Add New Staff
-        </Button>
+        <div className="flex items-center space-x-4">
+          {/* View Toggle */}
+          <div className="flex items-center bg-muted rounded-lg p-1">
+            <Button
+              variant={displayMode === 'table' ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => setDisplayMode('table')}
+              className="px-3"
+            >
+              <Table className="h-4 w-4 mr-1" />
+              Table
+            </Button>
+            <Button
+              variant={displayMode === 'cards' ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => setDisplayMode('cards')}
+              className="px-3"
+            >
+              <Users className="h-4 w-4 mr-1" />
+              Cards
+            </Button>
+          </div>
+          <Button onClick={() => setShowCreateForm(true)} className="gap-2">
+            <UserPlus className="h-4 w-4" />
+            Add New Staff
+          </Button>
+        </div>
       </div>
 
       {/* Search */}
@@ -182,13 +204,25 @@ export function AdminStaffManagement() {
               onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-8"
             />
+            {isSearching && (
+              <div className="absolute right-2 top-2.5">
+                <InlineLoading size="sm" />
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>
 
       {/* Staff List */}
-      <div className="grid gap-4">
-        {filteredUsers.length === 0 ? (
+      <div className="space-y-4">
+        {displayMode === 'table' ? (
+          <AdminStaffTable
+            data={filteredUsers}
+            onEdit={setEditingUser}
+            onDelete={handleDeleteUser}
+            isLoading={isLoading}
+          />
+        ) : filteredUsers.length === 0 ? (
           <Card>
             <CardContent className="pt-6">
               <div className="text-center py-8">
@@ -209,71 +243,73 @@ export function AdminStaffManagement() {
             </CardContent>
           </Card>
         ) : (
-          filteredUsers.map((user: User) => (
-            <Card key={user.id} className="hover:shadow-md transition-shadow">
-              <CardContent className="pt-6">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-4">
-                    <div className="flex-shrink-0">
-                      <div className="h-10 w-10 rounded-full bg-gray-300 flex items-center justify-center">
-                        <span className="text-sm font-medium text-gray-700">
-                          {user.first_name[0]}{user.last_name[0]}
-                        </span>
+          <div className="grid gap-4">
+            {filteredUsers.map((user: User) => (
+              <Card key={user.id} className="hover:shadow-md transition-shadow">
+                <CardContent className="pt-6">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-4">
+                      <div className="flex-shrink-0">
+                        <div className="h-12 w-12 rounded-full bg-gradient-to-r from-blue-400 to-purple-500 flex items-center justify-center">
+                          <span className="text-sm font-semibold text-white">
+                            {user.first_name[0]}{user.last_name[0]}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-3">
+                          <p className="text-lg font-semibold text-gray-900">
+                            {user.first_name} {user.last_name}
+                          </p>
+                          <Badge className={getRoleBadgeColor(user.role)}>
+                            <Shield className="w-3 h-3 mr-1" />
+                            {user.role.toUpperCase()}
+                          </Badge>
+                        </div>
+                        <div className="flex items-center mt-1 text-sm text-gray-500 space-x-4">
+                          <span className="flex items-center gap-1">
+                            <Mail className="h-4 w-4" />
+                            {user.email}
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <Calendar className="h-4 w-4" />
+                            Joined {new Date(user.created_at).toLocaleDateString()}
+                          </span>
+                        </div>
                       </div>
                     </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-3">
-                        <p className="text-lg font-semibold text-gray-900">
-                          {user.first_name} {user.last_name}
-                        </p>
-                        <Badge className={getRoleBadgeColor(user.role)}>
-                          <Shield className="w-3 h-3 mr-1" />
-                          {user.role}
-                        </Badge>
-                      </div>
-                      <div className="flex items-center mt-1 text-sm text-gray-500 space-x-4">
-                        <span className="flex items-center gap-1">
-                          <Mail className="h-4 w-4" />
-                          {user.email}
-                        </span>
-                        <span className="flex items-center gap-1">
-                          <Calendar className="h-4 w-4" />
-                          Joined {new Date(user.created_at).toLocaleDateString()}
-                        </span>
-                      </div>
+                    <div className="flex items-center space-x-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => setEditingUser(user)}
+                        className="gap-2"
+                      >
+                        <Edit className="h-4 w-4" />
+                        Edit
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleDeleteUser(user)}
+                        disabled={deleteUserMutation.isPending}
+                        className="gap-2 text-red-600 hover:text-red-700 hover:border-red-300"
+                      >
+                        {deleteUserMutation.isPending ? (
+                          <InlineLoading size="sm" />
+                        ) : (
+                          <>
+                            <Trash2 className="h-4 w-4" />
+                            Delete
+                          </>
+                        )}
+                      </Button>
                     </div>
                   </div>
-                  <div className="flex items-center space-x-2">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => setEditingUser(user)}
-                      className="gap-2"
-                    >
-                      <Edit className="h-4 w-4" />
-                      Edit
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => handleDeleteUser(user)}
-                      disabled={deleteUserMutation.isPending}
-                      className="gap-2 text-red-600 hover:text-red-700 hover:border-red-300"
-                    >
-                      {deleteUserMutation.isPending ? (
-                        <InlineLoading size="sm" />
-                      ) : (
-                        <>
-                          <Trash2 className="h-4 w-4" />
-                          Delete
-                        </>
-                      )}
-                    </Button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))
+                </CardContent>
+              </Card>
+            ))}
+          </div>
         )}
       </div>
 

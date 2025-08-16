@@ -5,11 +5,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"strconv"
 	"strings"
 	"time"
 
 	"pos-backend/internal/handlers"
 	"pos-backend/internal/middleware"
+	"pos-backend/internal/models"
 
 	"github.com/gin-gonic/gin"
 	"golang.org/x/crypto/bcrypt"
@@ -89,7 +91,9 @@ func SetupRoutes(router *gin.RouterGroup, db *sql.DB, authMiddleware gin.Handler
 		admin.GET("/reports/orders", getOrdersReport(db))
 		admin.GET("/reports/income", getIncomeReport(db))
 
-		// Menu management
+		// Menu management with pagination
+		admin.GET("/products", productHandler.GetProducts) // Use existing paginated handler
+		admin.GET("/categories", getAdminCategories(db))   // Add pagination
 		admin.POST("/categories", createCategory(db))
 		admin.PUT("/categories/:id", updateCategory(db))
 		admin.DELETE("/categories/:id", deleteCategory(db))
@@ -97,16 +101,17 @@ func SetupRoutes(router *gin.RouterGroup, db *sql.DB, authMiddleware gin.Handler
 		admin.PUT("/products/:id", updateProduct(db))
 		admin.DELETE("/products/:id", deleteProduct(db))
 
-		// Table management
+		// Table management with pagination
+		admin.GET("/tables", getAdminTables(db)) // Add pagination
 		admin.POST("/tables", createTable(db))
 		admin.PUT("/tables/:id", updateTable(db))
 		admin.DELETE("/tables/:id", deleteTable(db))
 
-		// User management
+		// User management with pagination
+		admin.GET("/users", getAdminUsers(db)) // Update with pagination
 		admin.POST("/users", createUser(db))
 		admin.PUT("/users/:id", updateUser(db))
 		admin.DELETE("/users/:id", deleteUser(db))
-		admin.GET("/users", getUsers(db))
 
 		// Advanced order management
 		admin.POST("/orders", orderHandler.CreateOrder)                   // Admins can create any type of order
@@ -1391,31 +1396,76 @@ func deleteUser(db *sql.DB) gin.HandlerFunc {
 	}
 }
 
-// Admin handler - Get users
-func getUsers(db *sql.DB) gin.HandlerFunc {
+// Admin handler - Get users with pagination
+func getAdminUsers(db *sql.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
+		// Parse pagination parameters
+		page := 1
+		perPage := 20
 		role := c.Query("role")
 		isActive := c.Query("active")
+		search := c.Query("search")
 
-		query := "SELECT id, username, email, first_name, last_name, role, is_active, created_at FROM users WHERE 1=1"
+		if pageStr := c.Query("page"); pageStr != "" {
+			if p, err := strconv.Atoi(pageStr); err == nil && p > 0 {
+				page = p
+			}
+		}
+
+		if perPageStr := c.Query("per_page"); perPageStr != "" {
+			if pp, err := strconv.Atoi(perPageStr); err == nil && pp > 0 && pp <= 100 {
+				perPage = pp
+			}
+		}
+
+		offset := (page - 1) * perPage
+
+		// Build query with filters
+		queryBuilder := "SELECT id, username, email, first_name, last_name, role, is_active, created_at FROM users WHERE 1=1"
 		args := []interface{}{}
-		argCount := 1
+		argCount := 0
 
 		if role != "" {
-			query += fmt.Sprintf(" AND role = $%d", argCount)
-			args = append(args, role)
 			argCount++
+			queryBuilder += fmt.Sprintf(" AND role = $%d", argCount)
+			args = append(args, role)
 		}
 
 		if isActive != "" {
-			query += fmt.Sprintf(" AND is_active = $%d", argCount)
-			args = append(args, isActive == "true")
 			argCount++
+			queryBuilder += fmt.Sprintf(" AND is_active = $%d", argCount)
+			args = append(args, isActive == "true")
 		}
 
-		query += " ORDER BY created_at DESC"
+		if search != "" {
+			argCount++
+			queryBuilder += fmt.Sprintf(" AND (first_name ILIKE $%d OR last_name ILIKE $%d OR username ILIKE $%d OR email ILIKE $%d)", argCount, argCount, argCount, argCount)
+			args = append(args, "%"+search+"%")
+		}
 
-		rows, err := db.Query(query, args...)
+		// Count total records
+		countQuery := "SELECT COUNT(*) FROM (" + queryBuilder + ") as count_query"
+		var total int
+		if err := db.QueryRow(countQuery, args...).Scan(&total); err != nil {
+			c.JSON(500, gin.H{
+				"success": false,
+				"message": "Failed to count users",
+				"error":   err.Error(),
+			})
+			return
+		}
+
+		// Add ordering and pagination
+		queryBuilder += " ORDER BY created_at DESC"
+		argCount++
+		queryBuilder += fmt.Sprintf(" LIMIT $%d", argCount)
+		args = append(args, perPage)
+
+		argCount++
+		queryBuilder += fmt.Sprintf(" OFFSET $%d", argCount)
+		args = append(args, offset)
+
+		rows, err := db.Query(queryBuilder, args...)
 		if err != nil {
 			c.JSON(500, gin.H{
 				"success": false,
@@ -1455,10 +1505,283 @@ func getUsers(db *sql.DB) gin.HandlerFunc {
 			users = append(users, user)
 		}
 
+		totalPages := (total + perPage - 1) / perPage
+
 		c.JSON(200, gin.H{
 			"success": true,
 			"message": "Users retrieved successfully",
 			"data":    users,
+			"meta": gin.H{
+				"current_page": page,
+				"per_page":     perPage,
+				"total":        total,
+				"total_pages":  totalPages,
+			},
 		})
 	}
+}
+
+// Admin handler - Get categories with pagination
+func getAdminCategories(db *sql.DB) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		// Parse pagination parameters
+		page := 1
+		perPage := 20
+		activeOnly := c.Query("active_only") == "true"
+		search := c.Query("search")
+
+		if pageStr := c.Query("page"); pageStr != "" {
+			if p, err := strconv.Atoi(pageStr); err == nil && p > 0 {
+				page = p
+			}
+		}
+
+		if perPageStr := c.Query("per_page"); perPageStr != "" {
+			if pp, err := strconv.Atoi(perPageStr); err == nil && pp > 0 && pp <= 100 {
+				perPage = pp
+			}
+		}
+
+		offset := (page - 1) * perPage
+
+		// Build query with filters
+		queryBuilder := "SELECT id, name, description, color, sort_order, is_active, created_at, updated_at FROM categories WHERE 1=1"
+		args := []interface{}{}
+		argCount := 0
+
+		if activeOnly {
+			queryBuilder += " AND is_active = true"
+		}
+
+		if search != "" {
+			argCount++
+			queryBuilder += fmt.Sprintf(" AND (name ILIKE $%d OR description ILIKE $%d)", argCount, argCount)
+			args = append(args, "%"+search+"%")
+		}
+
+		// Count total records
+		countQuery := "SELECT COUNT(*) FROM (" + queryBuilder + ") as count_query"
+		var total int
+		if err := db.QueryRow(countQuery, args...).Scan(&total); err != nil {
+			c.JSON(500, gin.H{
+				"success": false,
+				"message": "Failed to count categories",
+				"error":   err.Error(),
+			})
+			return
+		}
+
+		// Add ordering and pagination
+		queryBuilder += " ORDER BY sort_order ASC, name ASC"
+		argCount++
+		queryBuilder += fmt.Sprintf(" LIMIT $%d", argCount)
+		args = append(args, perPage)
+
+		argCount++
+		queryBuilder += fmt.Sprintf(" OFFSET $%d", argCount)
+		args = append(args, offset)
+
+		rows, err := db.Query(queryBuilder, args...)
+		if err != nil {
+			c.JSON(500, gin.H{
+				"success": false,
+				"message": "Failed to fetch categories",
+				"error":   err.Error(),
+			})
+			return
+		}
+		defer rows.Close()
+
+		var categories []models.Category
+		for rows.Next() {
+			var category models.Category
+
+			err := rows.Scan(
+				&category.ID, &category.Name, &category.Description, &category.Color,
+				&category.SortOrder, &category.IsActive, &category.CreatedAt, &category.UpdatedAt,
+			)
+			if err != nil {
+				c.JSON(500, gin.H{
+					"success": false,
+					"message": "Failed to scan category",
+					"error":   err.Error(),
+				})
+				return
+			}
+
+			categories = append(categories, category)
+		}
+
+		totalPages := (total + perPage - 1) / perPage
+
+		c.JSON(200, gin.H{
+			"success": true,
+			"message": "Categories retrieved successfully",
+			"data":    categories,
+			"meta": gin.H{
+				"current_page": page,
+				"per_page":     perPage,
+				"total":        total,
+				"total_pages":  totalPages,
+			},
+		})
+	}
+}
+
+// Admin handler - Get tables with pagination
+func getAdminTables(db *sql.DB) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		// Parse pagination parameters
+		page := 1
+		perPage := 20
+		location := c.Query("location")
+		status := c.Query("status") // "occupied", "available", or empty for all
+		search := c.Query("search")
+
+		if pageStr := c.Query("page"); pageStr != "" {
+			if p, err := strconv.Atoi(pageStr); err == nil && p > 0 {
+				page = p
+			}
+		}
+
+		if perPageStr := c.Query("per_page"); perPageStr != "" {
+			if pp, err := strconv.Atoi(perPageStr); err == nil && pp > 0 && pp <= 100 {
+				perPage = pp
+			}
+		}
+
+		offset := (page - 1) * perPage
+
+		// Build query with filters
+		queryBuilder := `
+			SELECT t.id, t.table_number, t.seating_capacity, t.location, t.is_occupied, 
+			       t.created_at, t.updated_at,
+			       o.id as order_id, o.order_number, o.customer_name, o.status as order_status,
+			       o.created_at as order_created_at, o.total_amount
+			FROM dining_tables t
+			LEFT JOIN orders o ON t.id = o.table_id AND o.status NOT IN ('completed', 'cancelled')
+			WHERE 1=1
+		`
+
+		args := []interface{}{}
+		argCount := 0
+
+		if location != "" {
+			argCount++
+			queryBuilder += fmt.Sprintf(" AND t.location ILIKE $%d", argCount)
+			args = append(args, "%"+location+"%")
+		}
+
+		if status == "occupied" {
+			queryBuilder += " AND t.is_occupied = true"
+		} else if status == "available" {
+			queryBuilder += " AND t.is_occupied = false"
+		}
+
+		if search != "" {
+			argCount++
+			queryBuilder += fmt.Sprintf(" AND (t.table_number ILIKE $%d OR t.location ILIKE $%d)", argCount, argCount)
+			args = append(args, "%"+search+"%")
+		}
+
+		// Count total records
+		countQuery := "SELECT COUNT(*) FROM (" + queryBuilder + ") as count_query"
+		var total int
+		if err := db.QueryRow(countQuery, args...).Scan(&total); err != nil {
+			c.JSON(500, gin.H{
+				"success": false,
+				"message": "Failed to count tables",
+				"error":   err.Error(),
+			})
+			return
+		}
+
+		// Add ordering and pagination
+		queryBuilder += " ORDER BY t.table_number ASC"
+		argCount++
+		queryBuilder += fmt.Sprintf(" LIMIT $%d", argCount)
+		args = append(args, perPage)
+
+		argCount++
+		queryBuilder += fmt.Sprintf(" OFFSET $%d", argCount)
+		args = append(args, offset)
+
+		rows, err := db.Query(queryBuilder, args...)
+		if err != nil {
+			c.JSON(500, gin.H{
+				"success": false,
+				"message": "Failed to fetch tables",
+				"error":   err.Error(),
+			})
+			return
+		}
+		defer rows.Close()
+
+		var tables []map[string]interface{}
+		for rows.Next() {
+			var table models.DiningTable
+			var orderID, orderNumber, customerName, orderStatus sql.NullString
+			var orderCreatedAt sql.NullTime
+			var totalAmount sql.NullFloat64
+
+			err := rows.Scan(
+				&table.ID, &table.TableNumber, &table.SeatingCapacity, &table.Location, &table.IsOccupied,
+				&table.CreatedAt, &table.UpdatedAt,
+				&orderID, &orderNumber, &customerName, &orderStatus, &orderCreatedAt, &totalAmount,
+			)
+			if err != nil {
+				c.JSON(500, gin.H{
+					"success": false,
+					"message": "Failed to scan table",
+					"error":   err.Error(),
+				})
+				return
+			}
+
+			// Create table data with current order info
+			tableData := map[string]interface{}{
+				"id":               table.ID,
+				"table_number":     table.TableNumber,
+				"seating_capacity": table.SeatingCapacity,
+				"location":         table.Location,
+				"is_occupied":      table.IsOccupied,
+				"created_at":       table.CreatedAt,
+				"updated_at":       table.UpdatedAt,
+				"current_order":    nil,
+			}
+
+			// Add current order info if available
+			if orderID.Valid {
+				tableData["current_order"] = map[string]interface{}{
+					"id":            orderID.String,
+					"order_number":  orderNumber.String,
+					"customer_name": customerName.String,
+					"status":        orderStatus.String,
+					"created_at":    orderCreatedAt.Time,
+					"total_amount":  totalAmount.Float64,
+				}
+			}
+
+			tables = append(tables, tableData)
+		}
+
+		totalPages := (total + perPage - 1) / perPage
+
+		c.JSON(200, gin.H{
+			"success": true,
+			"message": "Tables retrieved successfully",
+			"data":    tables,
+			"meta": gin.H{
+				"current_page": page,
+				"per_page":     perPage,
+				"total":        total,
+				"total_pages":  totalPages,
+			},
+		})
+	}
+}
+
+// Helper function to convert string to pointer
+func stringPtr(s string) *string {
+	return &s
 }

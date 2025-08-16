@@ -247,6 +247,14 @@ class APIClient {
     });
   }
 
+  async getIncomeReport(period: 'today' | 'week' | 'month' | 'year' = 'today'): Promise<APIResponse<any>> {
+    return this.request({
+      method: 'GET',
+      url: '/admin/reports/income',
+      params: { period },
+    });
+  }
+
   // Kitchen endpoints
   async getKitchenOrders(status?: string): Promise<APIResponse<Order[]>> {
     return this.request({
@@ -345,6 +353,40 @@ class APIClient {
 
   async deleteCategory(id: string): Promise<APIResponse> {
     return this.request({ method: 'DELETE', url: `/admin/categories/${id}` });
+  }
+
+  // Admin products endpoint with pagination
+  async getAdminProducts(params?: { page?: number, per_page?: number, limit?: number, search?: string, category_id?: string }): Promise<APIResponse<Product[]>> {
+    // Normalize params (handle both per_page and limit)
+    const normalizedParams = {
+      page: params?.page,
+      per_page: params?.per_page || params?.limit,
+      search: params?.search,
+      category_id: params?.category_id
+    }
+    
+    return this.request({ 
+      method: 'GET', 
+      url: '/admin/products',
+      params: normalizedParams
+    });
+  }
+
+  // Admin categories endpoint with pagination
+  async getAdminCategories(params?: { page?: number, per_page?: number, limit?: number, search?: string, active_only?: boolean }): Promise<APIResponse<Category[]>> {
+    // Normalize params (handle both per_page and limit)
+    const normalizedParams = {
+      page: params?.page,
+      per_page: params?.per_page || params?.limit,
+      search: params?.search,
+      active_only: params?.active_only
+    }
+    
+    return this.request({ 
+      method: 'GET', 
+      url: '/admin/categories',
+      params: normalizedParams
+    });
   }
 
   // Admin tables endpoint with pagination
