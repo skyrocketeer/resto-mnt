@@ -1,0 +1,330 @@
+---
+globs: Dockerfile,Dockerfile.*,docker-compose.*,*.sh,nginx.conf
+description: Docker containerization and deployment patterns for POS System
+---
+
+# Docker & Deployment Guidelines
+
+## Container Architecture
+
+### Service Overview
+The POS system uses a multi-container architecture defined in [docker-compose.yml](mdc:docker-compose.yml):
+
+1. **postgres** - PostgreSQL database with persistent storage
+2. **backend** - Golang API server with database connectivity
+3. **frontend** - React application served via Nginx
+
+### Container Networking
+All services communicate through the `pos-network` bridge network:
+- Frontend → Backend: HTTP API calls
+- Backend → Database: PostgreSQL connection
+- External access via exposed ports
+
+## Development vs Production
+
+### Development Configuration
+Use [docker-compose.dev.yml](mdc:docker-compose.dev.yml) for development:
+```bash
+docker-compose -f docker-compose.dev.yml up
+```
+
+**Development Features:**
+- Volume mounts for live code reloading
+- Development-specific environment variables
+- Hot reloading for both frontend (Vite) and backend (Air)
+- Debug logging enabled
+
+### Production Configuration
+Use [docker-compose.yml](mdc:docker-compose.yml) for production:
+```bash
+docker-compose up -d
+```
+
+**Production Features:**
+- Optimized multi-stage builds
+- Minimal runtime containers (Alpine-based)
+- Health checks and restart policies
+- Production-ready Nginx configuration
+
+## Dockerfile Patterns
+
+### Backend Dockerfile
+Multi-stage build pattern in [backend/Dockerfile](mdc:backend/Dockerfile):
+
+```dockerfile
+# Build stage - full Go toolchain
+FROM golang:1.21-alpine AS builder
+WORKDIR /app
+COPY go.mod go.sum ./
+RUN go mod download
+COPY . .
+RUN CGO_ENABLED=0 GOOS=linux go build -o main .
+
+# Production stage - minimal runtime
+FROM alpine:latest
+RUN apk --no-cache add ca-certificates
+WORKDIR /root/
+COPY --from=builder /app/main .
+EXPOSE 8080
+CMD ["./main"]
+```
+
+### Frontend Dockerfile
+Node.js build with Nginx serving in [frontend/Dockerfile](mdc:frontend/Dockerfile):
+
+```dockerfile
+# Build stage
+FROM node:18-alpine AS builder
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci --only=production
+COPY . .
+RUN npm run build
+
+# Production stage - Nginx
+FROM nginx:alpine AS production
+COPY nginx.conf /etc/nginx/nginx.conf
+COPY --from=builder /app/dist /usr/share/nginx/html
+EXPOSE 3000
+CMD ["nginx", "-g", "daemon off;"]
+```
+
+## Environment Configuration
+
+### Environment Variables
+Define environment variables in `.env` file or through Docker Compose:
+
+```env
+# Database
+DB_HOST=postgres
+DB_PORT=5432
+DB_USER=postgres
+DB_PASSWORD=postgres123
+DB_NAME=pos_system
+
+# Backend
+PORT=8080
+GIN_MODE=release
+
+# Frontend  
+VITE_API_URL=http://localhost:8080
+```
+
+### Security Considerations
+- Use Docker secrets for sensitive data in production
+- Avoid hardcoding credentials in Dockerfiles
+- Use separate environment files for different stages
+- Rotate passwords and API keys regularly
+
+## Volume Management
+
+### Persistent Data Storage
+Database data persists using named volumes:
+```yaml
+volumes:
+  postgres_data:
+    driver: local
+    
+services:
+  postgres:
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+```
+
+### Development Volume Mounts
+Mount source code for hot reloading in development:
+```yaml
+services:
+  backend:
+    volumes:
+      - ./backend:/app
+  frontend:
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules  # Anonymous volume for node_modules
+```
+
+## Nginx Configuration
+
+### Reverse Proxy Setup
+Nginx configuration in [frontend/nginx.conf](mdc:frontend/nginx.conf):
+
+```nginx
+# API proxy to backend
+location /api {
+    proxy_pass http://backend:8080;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+}
+
+# SPA routing for React
+location / {
+    try_files $uri $uri/ /index.html;
+}
+```
+
+### Performance Optimization
+- Gzip compression for static assets
+- Proper caching headers for assets
+- Security headers (CORS, XSS protection)
+- Health check endpoint for load balancers
+
+## Health Checks & Monitoring
+
+### Container Health Checks
+Define health checks in Docker Compose:
+```yaml
+services:
+  backend:
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+      
+  frontend:
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+```
+
+### Restart Policies
+Configure appropriate restart policies:
+```yaml
+services:
+  postgres:
+    restart: unless-stopped
+  backend:
+    restart: unless-stopped
+  frontend:
+    restart: unless-stopped
+```
+
+## Database Initialization
+
+### Schema & Seed Data
+Database automatically initializes using scripts in [database/init/](mdc:database/init/):
+- [01_schema.sql](mdc:database/init/01_schema.sql) - Table structure and indexes
+- [02_seed_data.sql](mdc:database/init/02_seed_data.sql) - Sample data for development
+
+### Backup Strategies
+```bash
+# Create database backup
+docker exec pos-postgres pg_dump -U postgres pos_system > backup.sql
+
+# Restore database
+docker exec -i pos-postgres psql -U postgres pos_system < backup.sql
+```
+
+## Development Workflow
+
+### Quick Start Script
+Use the convenience script [start.sh](mdc:start.sh) for easy development:
+```bash
+chmod +x start.sh
+./start.sh
+```
+
+### Common Commands
+```bash
+# Start all services
+docker-compose up -d
+
+# View logs
+docker-compose logs -f backend
+docker-compose logs -f frontend
+
+# Stop services
+docker-compose down
+
+# Rebuild containers
+docker-compose up --build
+
+# Access database
+docker exec -it pos-postgres psql -U postgres pos_system
+```
+
+## Production Deployment
+
+### Container Registry
+Build and push images for production deployment:
+```bash
+# Build images
+docker build -t pos-backend:latest ./backend
+docker build -t pos-frontend:latest ./frontend
+
+# Tag for registry
+docker tag pos-backend:latest your-registry/pos-backend:v1.0.0
+docker tag pos-frontend:latest your-registry/pos-frontend:v1.0.0
+
+# Push to registry
+docker push your-registry/pos-backend:v1.0.0
+docker push your-registry/pos-frontend:v1.0.0
+```
+
+### Deployment Checklist
+- [ ] Environment variables configured
+- [ ] SSL/TLS certificates installed
+- [ ] Database backups scheduled
+- [ ] Monitoring and logging configured
+- [ ] Security scanning completed
+- [ ] Load balancer configured (if needed)
+- [ ] Domain name and DNS configured
+
+## Security Best Practices
+
+### Container Security
+- Use non-root users in containers where possible
+- Keep base images updated
+- Scan images for vulnerabilities
+- Minimize attack surface (minimal base images)
+- Use specific image tags, avoid 'latest'
+
+### Network Security
+- Use internal networks for service communication
+- Expose only necessary ports
+- Implement proper firewall rules
+- Use HTTPS/TLS for external communication
+
+## Performance Optimization
+
+### Build Optimization
+- Use multi-stage builds to reduce image size
+- Leverage Docker build cache effectively
+- Use .dockerignore to exclude unnecessary files
+- Optimize layer ordering for better caching
+
+### Runtime Optimization
+- Set appropriate resource limits (CPU, memory)
+- Use init systems for proper signal handling
+- Configure log rotation to prevent disk space issues
+- Monitor resource usage and adjust limits accordingly
+
+## Troubleshooting
+
+### Common Issues
+1. **Port conflicts** - Ensure ports 3000, 8080, 5432 are available
+2. **Volume permissions** - Check file permissions for mounted volumes
+3. **Network connectivity** - Verify service communication within Docker network
+4. **Environment variables** - Validate all required env vars are set
+5. **Database connection** - Wait for database to be ready before starting backend
+
+### Debugging Commands
+```bash
+# Check container logs
+docker-compose logs [service-name]
+
+# Execute commands in container
+docker-compose exec backend sh
+docker-compose exec postgres psql -U postgres pos_system
+
+# Check network connectivity
+docker-compose exec backend wget -qO- http://postgres:5432
+
+# Inspect container details
+docker inspect pos-backend
+```

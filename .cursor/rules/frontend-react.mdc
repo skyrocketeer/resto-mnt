@@ -1,0 +1,263 @@
+---
+globs: *.tsx,*.ts,*.jsx,*.js
+description: React frontend development patterns using TanStack Start, TypeScript, and shadcn/ui
+---
+
+# Frontend Development Guidelines (React + TypeScript)
+
+## Project Structure
+
+### Component Organization
+Follow the established structure in [frontend/src/](mdc:frontend/src/):
+- `components/ui/` - shadcn/ui base components
+- `components/` - Business logic components
+- `pages/` - Route-level page components
+- `layouts/` - Layout wrapper components
+- `hooks/` - Custom React hooks
+- `lib/` - Utility functions and configurations
+- `types/` - TypeScript type definitions
+- `api/` - API client and related functions
+
+## TypeScript Guidelines
+
+### Type Definitions
+Use the comprehensive types from [types/index.ts](mdc:frontend/src/types/index.ts):
+- Import types explicitly: `import type { Product, Order } from '@/types'`
+- Use interfaces for object shapes
+- Use unions for string literals: `'pending' | 'confirmed' | 'completed'`
+- Always type component props and API responses
+
+### Component Props Pattern:
+```typescript
+interface ProductCardProps {
+  product: Product;
+  onSelect: (product: Product) => void;
+  isSelected?: boolean;
+  className?: string;
+}
+
+const ProductCard: React.FC<ProductCardProps> = ({ 
+  product, 
+  onSelect, 
+  isSelected = false,
+  className 
+}) => {
+  // Implementation
+};
+```
+
+## shadcn/ui Components
+
+### Base Components
+Use the established components from [components/ui/](mdc:frontend/src/components/ui/):
+- [Button](mdc:frontend/src/components/ui/button.tsx) - Primary UI button component
+- [Card](mdc:frontend/src/components/ui/card.tsx) - Container component
+- [Input](mdc:frontend/src/components/ui/input.tsx) - Form input component
+- [Badge](mdc:frontend/src/components/ui/badge.tsx) - Status indicators
+
+### Component Composition Pattern:
+```typescript
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+
+const OrderCard = ({ order }: { order: Order }) => (
+  <Card>
+    <CardHeader>
+      <CardTitle>{order.order_number}</CardTitle>
+      <Badge variant={getStatusVariant(order.status)}>
+        {order.status}
+      </Badge>
+    </CardHeader>
+    <CardContent>
+      {/* Content */}
+    </CardContent>
+  </Card>
+);
+```
+
+## API Integration
+
+### API Client Usage
+Use the centralized client from [api/client.ts](mdc:frontend/src/api/client.ts):
+```typescript
+import apiClient from '@/api/client';
+
+const useOrders = () => {
+  const { data, error, isLoading } = useQuery({
+    queryKey: ['orders'],
+    queryFn: () => apiClient.getOrders()
+  });
+  
+  return { orders: data?.data, error, isLoading };
+};
+```
+
+### Error Handling
+Handle API errors consistently:
+```typescript
+try {
+  const response = await apiClient.createOrder(orderData);
+  if (response.success) {
+    // Handle success
+  }
+} catch (error) {
+  // Handle error - already processed by API client interceptors
+  toast.error(error.message || 'An error occurred');
+}
+```
+
+## State Management
+
+### React Query for Server State
+Use TanStack Query for all server state management:
+- Use `useQuery` for fetching data
+- Use `useMutation` for creating/updating data
+- Implement proper cache invalidation
+- Handle loading and error states
+
+### Local State Patterns
+For local component state:
+```typescript
+const [isOpen, setIsOpen] = useState(false);
+const [formData, setFormData] = useState<CreateOrderRequest>({
+  order_type: 'dine_in',
+  items: [],
+});
+```
+
+## Styling Guidelines
+
+### Tailwind CSS Usage
+Follow the patterns established in [index.css](mdc:frontend/src/index.css):
+- Use utility classes for styling
+- Leverage CSS variables for theming
+- Use the `cn()` helper from [lib/utils.ts](mdc:frontend/src/lib/utils.ts) for conditional classes
+
+### CSS Class Pattern:
+```typescript
+import { cn } from '@/lib/utils';
+
+const ProductCard = ({ className, isSelected }) => (
+  <div className={cn(
+    "rounded-lg border bg-card p-4 transition-colors",
+    isSelected && "ring-2 ring-primary",
+    className
+  )}>
+    {/* Content */}
+  </div>
+);
+```
+
+## Form Handling
+
+### React Hook Form Pattern:
+```typescript
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+
+const orderSchema = z.object({
+  customer_name: z.string().optional(),
+  order_type: z.enum(['dine_in', 'takeout', 'delivery']),
+  items: z.array(z.object({
+    product_id: z.string(),
+    quantity: z.number().min(1)
+  }))
+});
+
+const OrderForm = () => {
+  const form = useForm<CreateOrderRequest>({
+    resolver: zodResolver(orderSchema),
+    defaultValues: {
+      order_type: 'dine_in',
+      items: []
+    }
+  });
+
+  const onSubmit = (data: CreateOrderRequest) => {
+    // Handle form submission
+  };
+};
+```
+
+## Performance Optimization
+
+### Component Memoization
+Use React.memo for expensive components:
+```typescript
+const ProductCard = React.memo<ProductCardProps>(({ product, onSelect }) => {
+  // Component implementation
+});
+```
+
+### useCallback and useMemo
+Optimize callbacks and computed values:
+```typescript
+const handleProductSelect = useCallback((product: Product) => {
+  addToCart(product);
+}, [addToCart]);
+
+const filteredProducts = useMemo(() => 
+  products.filter(p => p.category_id === selectedCategory),
+  [products, selectedCategory]
+);
+```
+
+## Accessibility
+
+### ARIA Labels
+Provide proper accessibility labels:
+```typescript
+<Button 
+  aria-label={`Add ${product.name} to cart`}
+  onClick={() => addToCart(product)}
+>
+  Add to Cart
+</Button>
+```
+
+### Keyboard Navigation
+Ensure all interactive elements are keyboard accessible:
+- Use proper semantic HTML elements
+- Implement keyboard event handlers where needed
+- Maintain focus management in modals and menus
+
+## Error Boundaries
+
+### Component Error Handling
+Implement error boundaries for robust error handling:
+```typescript
+class ErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  static getDerivedStateFromError(error) {
+    return { hasError: true };
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return <ErrorFallback />;
+    }
+    return this.props.children;
+  }
+}
+```
+
+## Testing Guidelines
+
+### Component Testing
+Test components with React Testing Library:
+- Test user interactions, not implementation details
+- Use screen queries for finding elements
+- Mock API calls and external dependencies
+- Test accessibility attributes
+
+### Custom Hooks Testing
+Test custom hooks with React Hooks Testing Library:
+- Test hook behavior in isolation
+- Test different scenarios and edge cases
+- Mock dependencies appropriately

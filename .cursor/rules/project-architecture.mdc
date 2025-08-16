@@ -1,0 +1,79 @@
+---
+alwaysApply: true
+description: Core project architecture and structure guidelines for POS System
+---
+
+# POS System - Project Architecture Guide
+
+## Project Overview
+This is a complete Point of Sale system built with:
+- **Backend:** Golang + Gin + PostgreSQL with raw SQL
+- **Frontend:** React + TanStack Start + TypeScript + Tailwind CSS + shadcn/ui
+- **Infrastructure:** Docker containers with Docker Compose
+- **Database:** PostgreSQL with comprehensive schema
+
+## Project Structure
+
+### Root Level
+- [docker-compose.yml](mdc:docker-compose.yml) - Main orchestration file for all services
+- [docker-compose.dev.yml](mdc:docker-compose.dev.yml) - Development environment with hot reloading
+- [start.sh](mdc:start.sh) - Convenience script to start the entire system
+
+### Backend Structure (`backend/`)
+- [main.go](mdc:backend/main.go) - Application entry point with server setup
+- [go.mod](mdc:backend/go.mod) - Go module dependencies
+- `internal/` - Internal packages following Go best practices
+  - [api/routes.go](mdc:backend/internal/api/routes.go) - API route definitions
+  - [models/models.go](mdc:backend/internal/models/models.go) - Data models and DTOs
+  - [database/connection.go](mdc:backend/internal/database/connection.go) - Database connection handling
+  - [handlers/](mdc:backend/internal/handlers/) - HTTP request handlers
+  - [middleware/auth.go](mdc:backend/internal/middleware/auth.go) - Authentication middleware
+
+### Frontend Structure (`frontend/`)
+- [package.json](mdc:frontend/package.json) - Node dependencies and scripts
+- [vite.config.ts](mdc:frontend/vite.config.ts) - Vite configuration with TanStack Router
+- [tailwind.config.js](mdc:frontend/tailwind.config.js) - Tailwind CSS configuration
+- `src/` - Source code directory
+  - [main.tsx](mdc:frontend/src/main.tsx) - React application entry point
+  - [types/index.ts](mdc:frontend/src/types/index.ts) - TypeScript type definitions
+  - [api/client.ts](mdc:frontend/src/api/client.ts) - API client with Axios
+  - [lib/utils.ts](mdc:frontend/src/lib/utils.ts) - Utility functions
+  - [components/ui/](mdc:frontend/src/components/ui/) - shadcn/ui components
+
+### Database Structure (`database/`)
+- [init/01_schema.sql](mdc:database/init/01_schema.sql) - Database schema with all tables
+- [init/02_seed_data.sql](mdc:database/init/02_seed_data.sql) - Sample data for development
+
+### Documentation (`docs/`)
+- [PRD.md](mdc:docs/PRD.md) - Product Requirements Document
+- [TODO.md](mdc:docs/TODO.md) - Project tasks and roadmap
+
+## Core Principles
+
+### 1. API-First Design
+- All business logic exposed through RESTful APIs
+- Frontend is a client consuming these APIs
+- Clear separation between client and server concerns
+
+### 2. Type Safety
+- TypeScript throughout the frontend
+- Matching interfaces between frontend and backend
+- Database operations use strongly-typed models
+
+### 3. Security First
+- JWT-based authentication with proper middleware
+- Role-based access control (RBAC)
+- SQL injection prevention through parameterized queries
+- CORS properly configured
+
+### 4. Performance & Scalability
+- Database indexes on frequently queried columns
+- Connection pooling for database operations
+- Proper HTTP caching headers
+- Efficient database queries with minimal N+1 problems
+
+### 5. Developer Experience
+- Hot reloading in development for both frontend and backend
+- Comprehensive type definitions
+- Clear error handling and logging
+- Docker for consistent development environments
