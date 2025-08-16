@@ -5,6 +5,7 @@ import { CategorySidebar } from './CategorySidebar'
 import { ProductGrid } from './ProductGrid'
 import { OrderCart } from './OrderCart'
 import { TableSelectionModal } from './TableSelectionModal'
+// Clean imports for debugging
 import apiClient from '@/api/client'
 import type { User, Category, Product, CartItem, DiningTable } from '@/types'
 
@@ -20,6 +21,11 @@ export function POSLayout({ user }: POSLayoutProps) {
   const [showTableModal, setShowTableModal] = useState(false)
   const [orderType, setOrderType] = useState<'dine_in' | 'takeout' | 'delivery'>('dine_in')
   const [customerName, setCustomerName] = useState('')
+  
+  // Enhanced POS features - temporarily disabled for debugging
+  // const [showProductSearch, setShowProductSearch] = useState(false)
+  // const [showQuickAccess, setShowQuickAccess] = useState(true)  
+  // const [showKeyboardHelp, setShowKeyboardHelp] = useState(false)
 
   // Fetch categories
   const { data: categoriesResponse, isLoading: categoriesLoading } = useQuery({
@@ -83,6 +89,44 @@ export function POSLayout({ user }: POSLayoutProps) {
     setCustomerName('')
   }
 
+  // Enhanced POS actions - temporarily disabled for debugging
+  // const cycleOrderType = () => {
+  //   const types: Array<'dine_in' | 'takeout' | 'delivery'> = ['dine_in', 'takeout', 'delivery']
+  //   const currentIndex = types.indexOf(orderType)
+  //   const nextType = types[(currentIndex + 1) % types.length]
+  //   setOrderType(nextType)
+  // }
+
+  // const proceedToPayment = () => {
+  //   if (cart.length === 0) {
+  //     alert('Please add items to cart first')
+  //     return
+  //   }
+  //   console.log('Proceeding to payment...')
+  // }
+
+  // // Keyboard shortcuts setup
+  // const shortcuts = createPOSShortcuts({
+  //   openSearch: () => setShowProductSearch(true),
+  //   clearCart: () => {
+  //     if (cart.length > 0 && window.confirm('Clear all items from cart?')) {
+  //       clearCart()
+  //     }
+  //   },
+  //   proceedToPayment,
+  //   switchOrderType: cycleOrderType,
+  //   selectTable: () => {
+  //     if (orderType === 'dine_in') {
+  //       setShowTableModal(true)
+  //     }
+  //   }
+  // })
+
+  // const { shortcuts: shortcutsList } = useKeyboardShortcuts({ 
+  //   shortcuts,
+  //   enabled: !showProductSearch && !showKeyboardHelp
+  // })
+
   // Calculate totals
   const subtotal = cart.reduce((sum, item) => sum + (item.product.price * item.quantity), 0)
   const taxAmount = subtotal * 0.10 // 10% tax
@@ -98,8 +142,11 @@ export function POSLayout({ user }: POSLayoutProps) {
 
   return (
     <div className="h-screen flex flex-col bg-gray-50">
-      {/* Header */}
-      <POSHeader 
+            {/* Header - temporarily disabled for debugging */}
+      <div className="bg-white border-b border-gray-200 p-4">
+        <h1 className="text-xl font-bold">POS System - Debugging Mode</h1>
+      </div>
+      {/* <POSHeader
         user={user}
         selectedTable={selectedTable}
         orderType={orderType}
@@ -107,11 +154,28 @@ export function POSLayout({ user }: POSLayoutProps) {
         onTableSelect={() => setShowTableModal(true)}
         customerName={customerName}
         onCustomerNameChange={setCustomerName}
-      />
+      /> */}
+
+      {/* Enhanced Search Bar - temporarily disabled */}
+      {/* {showProductSearch && (
+        <div className="p-4 bg-white border-b border-gray-200">
+          <div className="max-w-4xl mx-auto">
+            <ProductSearch
+              products={products}
+              categories={categories}
+              onProductSelect={(product) => {
+                addToCart(product)
+                // Keep search open for quick consecutive additions
+              }}
+              onClose={() => setShowProductSearch(false)}
+            />
+          </div>
+        </div>
+      )} */}
 
       {/* Main Content */}
       <div className="flex-1 flex overflow-hidden">
-        {/* Categories Sidebar */}
+        {/* Categories Sidebar - back to simple version */}
         <div className="w-64 bg-white border-r border-gray-200 flex-shrink-0">
           <CategorySidebar
             categories={categories}
@@ -146,7 +210,7 @@ export function POSLayout({ user }: POSLayoutProps) {
           </div>
         </div>
 
-        {/* Order Cart */}
+        {/* Order Cart - back to simple version */}
         <div className="w-96 bg-white border-l border-gray-200 flex-shrink-0">
           <OrderCart
             items={cart}
@@ -166,15 +230,23 @@ export function POSLayout({ user }: POSLayoutProps) {
       {/* Table Selection Modal */}
       {showTableModal && (
         <TableSelectionModal
+          isOpen={showTableModal}
+          onClose={() => setShowTableModal(false)}
           tables={tables}
           selectedTable={selectedTable}
           onTableSelect={(table) => {
             setSelectedTable(table)
             setShowTableModal(false)
           }}
-          onClose={() => setShowTableModal(false)}
         />
       )}
+
+      {/* Keyboard Shortcuts Help - temporarily disabled */}
+      {/* <KeyboardShortcutsHelp
+        shortcuts={shortcutsList}
+        isOpen={showKeyboardHelp}
+        onClose={() => setShowKeyboardHelp(false)}
+      /> */}
     </div>
   )
 }

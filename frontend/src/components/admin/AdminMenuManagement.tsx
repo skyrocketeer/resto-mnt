@@ -23,6 +23,8 @@ import { ProductForm } from '@/components/forms/ProductForm'
 import { CategoryForm } from '@/components/forms/CategoryForm'
 import { PaginationControlsComponent } from '@/components/ui/pagination-controls'
 import { usePagination } from '@/hooks/usePagination'
+import { ProductListSkeleton, CategoryListSkeleton, SearchingSkeleton } from '@/components/ui/skeletons'
+import { InlineLoading } from '@/components/ui/loading-spinner'
 import type { Product, Category } from '@/types'
 
 type ViewMode = 'list' | 'product-form' | 'category-form'
@@ -34,6 +36,7 @@ export function AdminMenuManagement() {
   const [debouncedSearch, setDebouncedSearch] = useState('')
   const [editingProduct, setEditingProduct] = useState<Product | null>(null)
   const [editingCategory, setEditingCategory] = useState<Category | null>(null)
+  const [isSearching, setIsSearching] = useState(false)
 
   const queryClient = useQueryClient()
 
@@ -52,18 +55,22 @@ export function AdminMenuManagement() {
 
   // Debounce search term
   useEffect(() => {
+    if (searchTerm !== debouncedSearch) {
+      setIsSearching(true)
+    }
     const timer = setTimeout(() => {
       setDebouncedSearch(searchTerm)
       // Reset pagination when search changes
       productsPagination.goToFirstPage()
       categoriesPagination.goToFirstPage()
+      setIsSearching(false)
     }, 500)
 
     return () => clearTimeout(timer)
-  }, [searchTerm])
+  }, [searchTerm, debouncedSearch])
 
   // Fetch products with pagination
-  const { data: productsData, isLoading: isLoadingProducts } = useQuery({
+  const { data: productsData, isLoading: isLoadingProducts, isFetching: isFetchingProducts } = useQuery({
     queryKey: ['admin-products', productsPagination.page, productsPagination.pageSize, debouncedSearch],
     queryFn: () => apiClient.getAdminProducts({
       page: productsPagination.page,
@@ -74,7 +81,7 @@ export function AdminMenuManagement() {
   })
 
   // Fetch categories with pagination  
-  const { data: categoriesData, isLoading: isLoadingCategories } = useQuery({
+  const { data: categoriesData, isLoading: isLoadingCategories, isFetching: isFetchingCategories } = useQuery({
     queryKey: ['admin-categories', categoriesPagination.page, categoriesPagination.pageSize, debouncedSearch],
     queryFn: () => apiClient.getAdminCategories({
       page: categoriesPagination.page,
@@ -263,12 +270,9 @@ export function AdminMenuManagement() {
 
           {/* Products List */}
           {isLoadingProducts ? (
-            <div className="flex items-center justify-center min-h-[400px]">
-              <div className="text-center">
-                <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-                <p>Loading products...</p>
-              </div>
-            </div>
+            <ProductListSkeleton count={productsPagination.pageSize} />
+          ) : isSearching && searchTerm ? (
+            <SearchingSkeleton />
           ) : filteredProducts.length === 0 ? (
             <Card>
               <CardContent className="pt-6">
@@ -377,11 +381,17 @@ export function AdminMenuManagement() {
           
           {/* Pagination for Products */}
           {filteredProducts.length > 0 && (
-            <PaginationControlsComponent
-              pagination={productsPagination}
-              total={productsPaginationInfo.total || products.length}
-              className="mt-6"
-            />
+            <div className="mt-6 space-y-4">
+              {isFetchingProducts && !isLoadingProducts && (
+                <div className="flex justify-center">
+                  <InlineLoading text="Updating products..." />
+                </div>
+              )}
+              <PaginationControlsComponent
+                pagination={productsPagination}
+                total={productsPaginationInfo.total || products.length}
+              />
+            </div>
           )}
         </TabsContent>
 
@@ -412,12 +422,9 @@ export function AdminMenuManagement() {
 
           {/* Categories List */}
           {isLoadingCategories ? (
-            <div className="flex items-center justify-center min-h-[400px]">
-              <div className="text-center">
-                <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-                <p>Loading categories...</p>
-              </div>
-            </div>
+            <CategoryListSkeleton count={categoriesPagination.pageSize} />
+          ) : isSearching && searchTerm ? (
+            <SearchingSkeleton />
           ) : filteredCategories.length === 0 ? (
             <Card>
               <CardContent className="pt-6">
@@ -508,11 +515,17 @@ export function AdminMenuManagement() {
 
           {/* Pagination for Categories */}
           {filteredCategories.length > 0 && (
-            <PaginationControlsComponent
-              pagination={categoriesPagination}
-              total={categoriesPaginationInfo.total || categories.length}
-              className="mt-6"
-            />
+            <div className="mt-6 space-y-4">
+              {isFetchingCategories && !isLoadingCategories && (
+                <div className="flex justify-center">
+                  <InlineLoading text="Updating categories..." />
+                </div>
+              )}
+              <PaginationControlsComponent
+                pagination={categoriesPagination}
+                total={categoriesPaginationInfo.total || categories.length}
+              />
+            </div>
           )}
         </TabsContent>
       </Tabs>

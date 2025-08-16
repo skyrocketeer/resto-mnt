@@ -18,6 +18,8 @@ import { toastHelpers } from '@/lib/toast-helpers'
 import { UserForm } from '@/components/forms/UserForm'
 import { PaginationControlsComponent } from '@/components/ui/pagination-controls'
 import { usePagination } from '@/hooks/usePagination'
+import { UserListSkeleton, SearchingSkeleton } from '@/components/ui/skeletons'
+import { PageLoading, InlineLoading } from '@/components/ui/loading-spinner'
 import type { User } from '@/types'
 
 export function AdminStaffManagement() {
@@ -25,6 +27,7 @@ export function AdminStaffManagement() {
   const [debouncedSearch, setDebouncedSearch] = useState('')
   const [showCreateForm, setShowCreateForm] = useState(false)
   const [editingUser, setEditingUser] = useState<User | null>(null)
+  const [isSearching, setIsSearching] = useState(false)
 
   const queryClient = useQueryClient()
 
@@ -37,38 +40,41 @@ export function AdminStaffManagement() {
 
   // Debounce search term
   useEffect(() => {
+    if (searchTerm !== debouncedSearch) {
+      setIsSearching(true)
+    }
     const timer = setTimeout(() => {
       setDebouncedSearch(searchTerm)
       pagination.goToFirstPage()
+      setIsSearching(false)
     }, 500)
     return () => clearTimeout(timer)
-  }, [searchTerm])
+  }, [searchTerm, debouncedSearch])
 
   // Fetch users with pagination
-  const { data: usersData, isLoading } = useQuery({
+  const { data: usersData, isLoading, isFetching, isPlaceholderData } = useQuery({
     queryKey: ['users', pagination.page, pagination.pageSize, debouncedSearch],
     queryFn: () => apiClient.getUsers({
       page: pagination.page,
       limit: pagination.pageSize,
       search: debouncedSearch || undefined
-    }).then(res => res.data),
-    keepPreviousData: true,
+    }).then((res: any) => res.data)
   })
 
   // Extract data and pagination info
   const users = Array.isArray(usersData) ? usersData : (usersData as any)?.data || []
   const paginationInfo = (usersData as any)?.pagination || { total: 0 }
 
-  // Update pagination total
-  useEffect(() => {
-    if (paginationInfo.total !== undefined) {
-      pagination.goToPage(pagination.page)
-    }
-  }, [paginationInfo.total])
+  // Update pagination total (commented out as pagination handles this internally)
+  // useEffect(() => {
+  //   if (paginationInfo.total !== undefined) {
+  //     // Total is updated automatically by the pagination hook
+  //   }
+  // }, [paginationInfo.total])
 
   // Delete user mutation (keep existing functionality)  
   const deleteUserMutation = useMutation({
-    mutationFn: ({ id, username }: { id: string, username: string }) => apiClient.deleteUser(id),
+    mutationFn: ({ id }: { id: string, username: string }) => apiClient.deleteUser(id),
     onSuccess: (_, { username: deletedUsername }) => {
       queryClient.invalidateQueries({ queryKey: ['users'] })
       toastHelpers.userDeleted(deletedUsername)
@@ -89,10 +95,11 @@ export function AdminStaffManagement() {
   }
 
   const handleDeleteUser = (user: User) => {
-    if (confirm(`Are you sure you want to delete ${user.first_name} ${user.last_name}?`)) {
+    const displayName = `${user.first_name} ${user.last_name}`
+    if (confirm(`Are you sure you want to delete ${displayName}?`)) {
       deleteUserMutation.mutate({ 
         id: user.id.toString(), 
-        username: `${user.first_name} ${user.last_name}` 
+        username: displayName
       })
     }
   }
@@ -127,13 +134,23 @@ export function AdminStaffManagement() {
 
   if (isLoading) {
     return (
-      <div className="p-6">
-        <div className="flex items-center justify-center min-h-[400px]">
-          <div className="text-center">
-            <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-            <p>Loading staff members...</p>
+      <div className="p-6 space-y-6">
+        {/* Header Skeleton */}
+        <div className="flex items-center justify-between">
+          <div className="space-y-2">
+            <div className="h-8 w-48 bg-muted animate-pulse rounded-md" />
+            <div className="h-4 w-72 bg-muted animate-pulse rounded-md" />
           </div>
+          <div className="h-10 w-24 bg-muted animate-pulse rounded-md" />
         </div>
+        
+        {/* Search and Controls Skeleton */}
+        <div className="flex items-center justify-between gap-4">
+          <div className="h-10 w-full max-w-sm bg-muted animate-pulse rounded-md" />
+        </div>
+        
+        {/* User List Skeleton */}
+        <UserListSkeleton count={pagination.pageSize} />
       </div>
     )
   }
@@ -192,7 +209,7 @@ export function AdminStaffManagement() {
             </CardContent>
           </Card>
         ) : (
-          filteredUsers.map((user) => (
+          filteredUsers.map((user: User) => (
             <Card key={user.id} className="hover:shadow-md transition-shadow">
               <CardContent className="pt-6">
                 <div className="flex items-center justify-between">
@@ -243,8 +260,14 @@ export function AdminStaffManagement() {
                       disabled={deleteUserMutation.isPending}
                       className="gap-2 text-red-600 hover:text-red-700 hover:border-red-300"
                     >
-                      <Trash2 className="h-4 w-4" />
-                      Delete
+                      {deleteUserMutation.isPending ? (
+                        <InlineLoading size="sm" />
+                      ) : (
+                        <>
+                          <Trash2 className="h-4 w-4" />
+                          Delete
+                        </>
+                      )}
                     </Button>
                   </div>
                 </div>
@@ -254,13 +277,19 @@ export function AdminStaffManagement() {
         )}
       </div>
 
-      {/* Pagination */}
+      {/* Pagination with loading state */}
       {filteredUsers.length > 0 && (
-        <PaginationControlsComponent
-          pagination={pagination}
-          total={paginationInfo.total || users.length}
-          className="mt-6"
-        />
+        <div className="mt-6 space-y-4">
+          {isFetching && !isLoading && (
+            <div className="flex justify-center">
+              <InlineLoading text="Updating results..." />
+            </div>
+          )}
+          <PaginationControlsComponent
+            pagination={pagination}
+            total={paginationInfo.total || users.length}
+          />
+        </div>
       )}
     </div>
   )

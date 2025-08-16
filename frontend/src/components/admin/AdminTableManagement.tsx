@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -19,6 +19,10 @@ import {
 import apiClient from '@/api/client'
 import { toastHelpers } from '@/lib/toast-helpers'
 import { TableForm } from '@/components/forms/TableForm'
+import { PaginationControlsComponent } from '@/components/ui/pagination-controls'
+import { usePagination } from '@/hooks/usePagination'
+import { TableGridSkeleton, SearchingSkeleton, FilteringSkeleton, StatsCardSkeleton } from '@/components/ui/skeletons'
+import { InlineLoading } from '@/components/ui/loading-spinner'
 import type { DiningTable } from '@/types'
 
 type ViewMode = 'list' | 'table-form'
@@ -26,22 +30,78 @@ type ViewMode = 'list' | 'table-form'
 export function AdminTableManagement() {
   const [viewMode, setViewMode] = useState<ViewMode>('list')
   const [searchTerm, setSearchTerm] = useState('')
+  const [debouncedSearch, setDebouncedSearch] = useState('')
   const [editingTable, setEditingTable] = useState<DiningTable | null>(null)
   const [filterStatus, setFilterStatus] = useState<string>('all')
+  const [isSearching, setIsSearching] = useState(false)
+  const [isFiltering, setIsFiltering] = useState(false)
 
   const queryClient = useQueryClient()
 
-  // Fetch tables
-  const { data: tables = [], isLoading } = useQuery({
-    queryKey: ['tables'],
+  // Pagination hook
+  const pagination = usePagination({ 
+    initialPage: 1, 
+    initialPageSize: 12,
+    total: 0 
+  })
+
+  // Debounce search term
+  useEffect(() => {
+    if (searchTerm !== debouncedSearch) {
+      setIsSearching(true)
+    }
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchTerm)
+      pagination.goToFirstPage()
+      setIsSearching(false)
+    }, 500)
+    return () => clearTimeout(timer)
+  }, [searchTerm, debouncedSearch])
+
+  // Reset pagination when status filter changes
+  useEffect(() => {
+    if (filterStatus !== 'all') {
+      setIsFiltering(true)
+      setTimeout(() => setIsFiltering(false), 300)
+    }
+    pagination.goToFirstPage()
+  }, [filterStatus])
+
+  // Fetch tables with pagination
+  const { data: tablesData, isLoading, isFetching } = useQuery({
+    queryKey: ['admin-tables', pagination.page, pagination.pageSize, debouncedSearch, filterStatus],
+    queryFn: () => apiClient.getAdminTables({
+      page: pagination.page,
+      limit: pagination.pageSize,
+      search: debouncedSearch || undefined,
+      status: filterStatus !== 'all' ? filterStatus : undefined
+    }).then(res => res.data),
+  })
+
+  // Also fetch summary stats (all tables for stats calculation)
+  const { data: allTables = [] } = useQuery({
+    queryKey: ['tables-summary'],
     queryFn: () => apiClient.getTables().then(res => res.data)
   })
 
+  // Extract data and pagination info
+  const tables = Array.isArray(tablesData) ? tablesData : (tablesData as any)?.data || []
+  const paginationInfo = (tablesData as any)?.pagination || { total: 0 }
+
+  // Update pagination total
+  useEffect(() => {
+    if (paginationInfo.total !== undefined) {
+      pagination.goToPage(pagination.page)
+    }
+  }, [paginationInfo.total])
+
   // Delete table mutation
   const deleteTableMutation = useMutation({
-    mutationFn: ({ id, tableNumber }: { id: string, tableNumber: string }) => apiClient.deleteTable(id),
+    mutationFn: ({ id }: { id: string, tableNumber: string }) => apiClient.deleteTable(id),
     onSuccess: (_, { tableNumber }) => {
+      queryClient.invalidateQueries({ queryKey: ['admin-tables'] })
       queryClient.invalidateQueries({ queryKey: ['tables'] })
+      queryClient.invalidateQueries({ queryKey: ['tables-summary'] })
       toastHelpers.apiSuccess('Delete', `Table ${tableNumber}`)
     },
     onError: (error: any) => {
@@ -62,7 +122,9 @@ export function AdminTableManagement() {
 
   // Delete handler
   const handleDeleteTable = (table: DiningTable) => {
-    if (table.status === 'occupied') {
+    // Note: DiningTable type may need to be updated to include status field
+    const tableStatus = (table as any).status
+    if (tableStatus === 'occupied') {
       toastHelpers.warning(
         'Cannot Delete Table',
         `Table ${table.table_number} is currently occupied. Please clear the table first.`
@@ -78,16 +140,8 @@ export function AdminTableManagement() {
     }
   }
 
-  // Filter and search logic
-  const filteredTables = tables.filter(table => {
-    const matchesSearch = 
-      table.table_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (table.location?.toLowerCase().includes(searchTerm.toLowerCase()) ?? false)
-    
-    const matchesFilter = filterStatus === 'all' || table.status === filterStatus
-    
-    return matchesSearch && matchesFilter
-  })
+  // Data is already filtered on the server side
+  const filteredTables = tables
 
   // Get status badge styling
   const getStatusBadge = (status: string) => {
@@ -120,13 +174,13 @@ export function AdminTableManagement() {
     }
   }
 
-  // Calculate stats
+  // Calculate stats from all tables (for accurate totals)
   const stats = {
-    total: tables.length,
-    available: tables.filter(t => t.status === 'available').length,
-    occupied: tables.filter(t => t.status === 'occupied').length,
-    reserved: tables.filter(t => t.status === 'reserved').length,
-    maintenance: tables.filter(t => t.status === 'maintenance').length,
+    total: allTables.length,
+    available: allTables.filter(t => (t as any).status === 'available').length,
+    occupied: allTables.filter(t => (t as any).status === 'occupied').length,
+    reserved: allTables.filter(t => (t as any).status === 'reserved').length,
+    maintenance: allTables.filter(t => (t as any).status === 'maintenance').length,
   }
 
   // Show form
@@ -168,46 +222,58 @@ export function AdminTableManagement() {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-        <Card>
-          <CardContent className="pt-6">
-            <div className="text-center">
-              <div className="text-2xl font-bold text-gray-900">{stats.total}</div>
-              <p className="text-xs text-muted-foreground">Total Tables</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6">
-            <div className="text-center">
-              <div className="text-2xl font-bold text-green-600">{stats.available}</div>
-              <p className="text-xs text-muted-foreground">Available</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6">
-            <div className="text-center">
-              <div className="text-2xl font-bold text-blue-600">{stats.occupied}</div>
-              <p className="text-xs text-muted-foreground">Occupied</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6">
-            <div className="text-center">
-              <div className="text-2xl font-bold text-yellow-600">{stats.reserved}</div>
-              <p className="text-xs text-muted-foreground">Reserved</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6">
-            <div className="text-center">
-              <div className="text-2xl font-bold text-red-600">{stats.maintenance}</div>
-              <p className="text-xs text-muted-foreground">Maintenance</p>
-            </div>
-          </CardContent>
-        </Card>
+        {isLoading ? (
+          <>
+            <StatsCardSkeleton />
+            <StatsCardSkeleton />
+            <StatsCardSkeleton />
+            <StatsCardSkeleton />
+            <StatsCardSkeleton />
+          </>
+        ) : (
+          <>
+            <Card>
+              <CardContent className="pt-6">
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-gray-900">{stats.total}</div>
+                  <p className="text-xs text-muted-foreground">Total Tables</p>
+                </div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="pt-6">
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-green-600">{stats.available}</div>
+                  <p className="text-xs text-muted-foreground">Available</p>
+                </div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="pt-6">
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-blue-600">{stats.occupied}</div>
+                  <p className="text-xs text-muted-foreground">Occupied</p>
+                </div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="pt-6">
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-yellow-600">{stats.reserved}</div>
+                  <p className="text-xs text-muted-foreground">Reserved</p>
+                </div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="pt-6">
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-red-600">{stats.maintenance}</div>
+                  <p className="text-xs text-muted-foreground">Maintenance</p>
+                </div>
+              </CardContent>
+            </Card>
+          </>
+        )}
       </div>
 
       {/* Controls */}
@@ -220,8 +286,18 @@ export function AdminTableManagement() {
             onChange={(e) => setSearchTerm(e.target.value)}
             className="pl-8"
           />
+          {isSearching && (
+            <div className="absolute right-2 top-2.5">
+              <InlineLoading size="sm" />
+            </div>
+          )}
         </div>
         <div className="flex gap-2">
+          {isFiltering && (
+            <div className="flex items-center mr-2">
+              <FilteringSkeleton />
+            </div>
+          )}
           <Button
             variant={filterStatus === 'all' ? 'default' : 'outline'}
             size="sm"
@@ -262,12 +338,9 @@ export function AdminTableManagement() {
 
       {/* Tables List */}
       {isLoading ? (
-        <div className="flex items-center justify-center min-h-[400px]">
-          <div className="text-center">
-            <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-            <p>Loading tables...</p>
-          </div>
-        </div>
+        <TableGridSkeleton count={pagination.pageSize} />
+      ) : isSearching && searchTerm ? (
+        <SearchingSkeleton />
       ) : filteredTables.length === 0 ? (
         <Card>
           <CardContent className="pt-6">
@@ -292,7 +365,7 @@ export function AdminTableManagement() {
         </Card>
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {filteredTables.map((table) => {
+          {filteredTables.map((table: any) => {
             const statusBadge = getStatusBadge(table.status)
             return (
               <Card key={table.id} className="hover:shadow-md transition-shadow">
@@ -310,16 +383,16 @@ export function AdminTableManagement() {
                     <div className="text-right">
                       <div className="flex items-center gap-1 text-sm text-muted-foreground">
                         <Users className="h-4 w-4" />
-                        {table.seats} seats
+                        {table.capacity} seats
                       </div>
                     </div>
                   </div>
                 </CardHeader>
                 <CardContent className="pt-0">
-                  {table.location && (
+                  {table.location_notes && (
                     <div className="flex items-start gap-2 mb-4">
                       <MapPin className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
-                      <span className="text-sm text-muted-foreground">{table.location}</span>
+                      <span className="text-sm text-muted-foreground">{table.location_notes}</span>
                     </div>
                   )}
                   <div className="flex items-center justify-between pt-2">
@@ -358,19 +431,20 @@ export function AdminTableManagement() {
         </div>
       )}
 
-      {/* Summary */}
+      {/* Pagination */}
       {filteredTables.length > 0 && (
-        <Card>
-          <CardContent className="pt-6">
-            <div className="text-center">
-              <p className="text-sm text-muted-foreground">
-                Showing {filteredTables.length} of {tables.length} tables
-                {searchTerm && ` matching "${searchTerm}"`}
-                {filterStatus !== 'all' && ` with status "${filterStatus}"`}
-              </p>
+        <div className="mt-6 space-y-4">
+          {isFetching && !isLoading && (
+            <div className="flex justify-center">
+              <InlineLoading text="Updating tables..." />
             </div>
-          </CardContent>
-        </Card>
+          )}
+          <PaginationControlsComponent
+            pagination={pagination}
+            total={paginationInfo.total || tables.length}
+            pageSizeOptions={[6, 12, 24, 48]}
+          />
+        </div>
       )}
     </div>
   )

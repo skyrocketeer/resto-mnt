@@ -72,6 +72,13 @@ function HomePage() {
     return <Navigate to="/login" />
   }
 
+  // Redirect admin users to admin panel
+  if (user.role === 'admin') {
+    console.log('Admin user detected, redirecting to admin panel')
+    return <Navigate to="/admin/dashboard" />
+  }
+
+  console.log('User authenticated, rendering role-based layout for user:', user)
   return <RoleBasedLayout user={user} />
 }
 

@@ -45,12 +45,7 @@ const adminSections = [
     icon: <LayoutDashboard className="w-5 h-5" />,
     description: 'Overview and statistics'
   },
-  {
-    id: 'pos',
-    label: 'General POS',
-    icon: <Store className="w-5 h-5" />,
-    description: 'Full POS interface'
-  },
+
   {
     id: 'server',
     label: 'Server Interface',
@@ -136,8 +131,6 @@ export function AdminLayout({ user }: AdminLayoutProps) {
     switch (currentSection) {
       case 'dashboard':
         return <AdminDashboard />
-      case 'pos':
-        return <POSLayout user={user} />
       case 'server':
         return <ServerInterface />
       case 'counter':
