@@ -14,7 +14,8 @@ import {
   Menu,
   BarChart3,
   UserCog,
-  Store
+  Store,
+  LayoutGrid
 } from 'lucide-react'
 import type { User as UserType } from '@/types'
 import apiClient from '@/api/client'
@@ -25,6 +26,13 @@ import { POSLayout } from '@/components/pos/POSLayout'
 import { ServerInterface } from '@/components/server/ServerInterface'
 import { CounterInterface } from '@/components/counter/CounterInterface'
 import { KitchenLayout } from '@/components/kitchen/KitchenLayout'
+import { ToastDemo } from '@/components/ui/demo-toast'
+import { FormDemo } from '@/components/forms/FormDemo'
+import { AdminStaffManagement } from './AdminStaffManagement'
+import { AdminSettings } from './AdminSettings'
+import { AdminMenuManagement } from './AdminMenuManagement'
+import { AdminTableManagement } from './AdminTableManagement'
+import { AdminReports } from './AdminReports'
 
 interface AdminLayoutProps {
   user: UserType
@@ -80,6 +88,12 @@ const adminSections = [
     description: 'Categories and products'
   },
   {
+    id: 'tables',
+    label: 'Manage Tables',
+    icon: <LayoutGrid className="w-5 h-5" />,
+    description: 'Dining table setup'
+  },
+  {
     id: 'reports',
     label: 'View Reports',
     icon: <BarChart3 className="w-5 h-5" />,
@@ -131,13 +145,21 @@ export function AdminLayout({ user }: AdminLayoutProps) {
       case 'kitchen':
         return <KitchenLayout user={user} />
       case 'settings':
-        return <div className="p-6"><h2 className="text-2xl font-bold">Settings</h2><p className="text-muted-foreground">Settings panel coming soon...</p></div>
+        return (
+          <div className="space-y-8">
+            <AdminSettings />
+            <ToastDemo />
+            <FormDemo />
+          </div>
+        )
       case 'staff':
-        return <div className="p-6"><h2 className="text-2xl font-bold">Staff Management</h2><p className="text-muted-foreground">Staff management coming soon...</p></div>
+        return <AdminStaffManagement />
       case 'menu':
-        return <div className="p-6"><h2 className="text-2xl font-bold">Menu Management</h2><p className="text-muted-foreground">Menu management coming soon...</p></div>
+        return <AdminMenuManagement />
+      case 'tables':
+        return <AdminTableManagement />
       case 'reports':
-        return <div className="p-6"><h2 className="text-2xl font-bold">Reports</h2><p className="text-muted-foreground">Reports panel coming soon...</p></div>
+        return <AdminReports />
       default:
         return <AdminDashboard />
     }

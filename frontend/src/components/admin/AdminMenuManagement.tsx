@@ -1,230 +1,216 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { 
-  Plus, 
-  Edit, 
-  Trash2, 
+  Plus,
   Search,
-  DollarSign,
+  Edit,
+  Trash2,
   Package,
-  Utensils,
-  Image as ImageIcon,
   Tag,
-  Eye
+  DollarSign,
+  Clock,
+  Image,
+  Archive
 } from 'lucide-react'
 import apiClient from '@/api/client'
+import { toastHelpers } from '@/lib/toast-helpers'
+import { ProductForm } from '@/components/forms/ProductForm'
+import { CategoryForm } from '@/components/forms/CategoryForm'
+import { PaginationControlsComponent } from '@/components/ui/pagination-controls'
+import { usePagination } from '@/hooks/usePagination'
 import type { Product, Category } from '@/types'
 
-interface CreateProductForm {
-  name: string
-  description: string
-  price: string
-  category_id: string
-  image_url: string
-  available: boolean
-}
-
-interface CreateCategoryForm {
-  name: string
-  description: string
-}
+type ViewMode = 'list' | 'product-form' | 'category-form'
 
 export function AdminMenuManagement() {
-  const [searchTerm, setSearchTerm] = useState('')
-  const [selectedCategory, setSelectedCategory] = useState<string>('all')
+  const [viewMode, setViewMode] = useState<ViewMode>('list')
   const [activeTab, setActiveTab] = useState<'products' | 'categories'>('products')
-  const [showCreateProductForm, setShowCreateProductForm] = useState(false)
-  const [showCreateCategoryForm, setShowCreateCategoryForm] = useState(false)
-  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null)
-  const [selectedCategoryEdit, setSelectedCategoryEdit] = useState<Category | null>(null)
-  
-  const [createProductForm, setCreateProductForm] = useState<CreateProductForm>({
-    name: '',
-    description: '',
-    price: '',
-    category_id: '',
-    image_url: '',
-    available: true
-  })
-
-  const [createCategoryForm, setCreateCategoryForm] = useState<CreateCategoryForm>({
-    name: '',
-    description: ''
-  })
+  const [searchTerm, setSearchTerm] = useState('')
+  const [debouncedSearch, setDebouncedSearch] = useState('')
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null)
+  const [editingCategory, setEditingCategory] = useState<Category | null>(null)
 
   const queryClient = useQueryClient()
 
-  // Fetch products
-  const { data: products, isLoading: productsLoading } = useQuery({
-    queryKey: ['products'],
-    queryFn: () => apiClient.getProducts().then(res => res.data)
+  // Pagination hooks
+  const productsPagination = usePagination({ 
+    initialPage: 1, 
+    initialPageSize: 10,
+    total: 0 
+  })
+  
+  const categoriesPagination = usePagination({ 
+    initialPage: 1, 
+    initialPageSize: 10,
+    total: 0 
   })
 
-  // Fetch categories
-  const { data: categories, isLoading: categoriesLoading } = useQuery({
+  // Debounce search term
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchTerm)
+      // Reset pagination when search changes
+      productsPagination.goToFirstPage()
+      categoriesPagination.goToFirstPage()
+    }, 500)
+
+    return () => clearTimeout(timer)
+  }, [searchTerm])
+
+  // Fetch products with pagination
+  const { data: productsData, isLoading: isLoadingProducts } = useQuery({
+    queryKey: ['admin-products', productsPagination.page, productsPagination.pageSize, debouncedSearch],
+    queryFn: () => apiClient.getAdminProducts({
+      page: productsPagination.page,
+      limit: productsPagination.pageSize,
+      search: debouncedSearch || undefined
+    }).then(res => res.data),
+    keepPreviousData: true,
+  })
+
+  // Fetch categories with pagination  
+  const { data: categoriesData, isLoading: isLoadingCategories } = useQuery({
+    queryKey: ['admin-categories', categoriesPagination.page, categoriesPagination.pageSize, debouncedSearch],
+    queryFn: () => apiClient.getAdminCategories({
+      page: categoriesPagination.page,
+      limit: categoriesPagination.pageSize,
+      search: debouncedSearch || undefined
+    }).then(res => res.data),
+    keepPreviousData: true,
+  })
+
+  // For forms, we still need all categories for the dropdown
+  const { data: allCategories = [] } = useQuery({
     queryKey: ['categories'],
     queryFn: () => apiClient.getCategories().then(res => res.data)
   })
 
-  // Product mutations
-  const createProductMutation = useMutation({
-    mutationFn: (productData: CreateProductForm) => {
-      const data = {
-        ...productData,
-        price: parseFloat(productData.price),
-        category_id: parseInt(productData.category_id)
-      }
-      return apiClient.createProduct(data)
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['products'] })
-      setShowCreateProductForm(false)
-      resetProductForm()
-      alert('Product created successfully!')
-    },
-    onError: (error: any) => {
-      alert(`Failed to create product: ${error.message}`)
-    }
-  })
+  // Extract data and pagination info
+  const products = Array.isArray(productsData) ? productsData : (productsData as any)?.data || []
+  const productsPaginationInfo = (productsData as any)?.pagination || { total: 0 }
+  
+  const categories = Array.isArray(categoriesData) ? categoriesData : (categoriesData as any)?.data || []
+  const categoriesPaginationInfo = (categoriesData as any)?.pagination || { total: 0 }
 
-  const updateProductMutation = useMutation({
-    mutationFn: ({ id, productData }: { id: string, productData: Partial<Product> }) => 
-      apiClient.updateProduct(id, productData),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['products'] })
-      setSelectedProduct(null)
-      alert('Product updated successfully!')
-    },
-    onError: (error: any) => {
-      alert(`Failed to update product: ${error.message}`)
+  // Update pagination totals
+  useEffect(() => {
+    if (productsPaginationInfo.total !== undefined) {
+      productsPagination.goToPage(productsPagination.page) // This will update internal state
     }
-  })
+  }, [productsPaginationInfo.total])
 
+  useEffect(() => {
+    if (categoriesPaginationInfo.total !== undefined) {
+      categoriesPagination.goToPage(categoriesPagination.page)
+    }
+  }, [categoriesPaginationInfo.total])
+
+  // Delete product mutation
   const deleteProductMutation = useMutation({
-    mutationFn: (id: string) => apiClient.deleteProduct(id),
-    onSuccess: () => {
+    mutationFn: ({ id, name }: { id: string, name: string }) => apiClient.deleteProduct(id),
+    onSuccess: (_, { name }) => {
+      queryClient.invalidateQueries({ queryKey: ['admin-products'] })
       queryClient.invalidateQueries({ queryKey: ['products'] })
-      alert('Product deleted successfully!')
+      toastHelpers.apiSuccess('Delete', `Product "${name}"`)
     },
     onError: (error: any) => {
-      alert(`Failed to delete product: ${error.message}`)
+      toastHelpers.apiError('Delete product', error)
     }
   })
 
-  // Category mutations
-  const createCategoryMutation = useMutation({
-    mutationFn: (categoryData: CreateCategoryForm) => apiClient.createCategory(categoryData),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['categories'] })
-      setShowCreateCategoryForm(false)
-      resetCategoryForm()
-      alert('Category created successfully!')
-    },
-    onError: (error: any) => {
-      alert(`Failed to create category: ${error.message}`)
-    }
-  })
-
-  const updateCategoryMutation = useMutation({
-    mutationFn: ({ id, categoryData }: { id: string, categoryData: Partial<Category> }) => 
-      apiClient.updateCategory(id, categoryData),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['categories'] })
-      setSelectedCategoryEdit(null)
-      alert('Category updated successfully!')
-    },
-    onError: (error: any) => {
-      alert(`Failed to update category: ${error.message}`)
-    }
-  })
-
+  // Delete category mutation
   const deleteCategoryMutation = useMutation({
-    mutationFn: (id: string) => apiClient.deleteCategory(id),
-    onSuccess: () => {
+    mutationFn: ({ id, name }: { id: string, name: string }) => apiClient.deleteCategory(id),
+    onSuccess: (_, { name }) => {
+      queryClient.invalidateQueries({ queryKey: ['admin-categories'] })
       queryClient.invalidateQueries({ queryKey: ['categories'] })
-      alert('Category deleted successfully!')
+      queryClient.invalidateQueries({ queryKey: ['admin-products'] })
+      toastHelpers.apiSuccess('Delete', `Category "${name}"`)
     },
     onError: (error: any) => {
-      alert(`Failed to delete category: ${error.message}`)
+      toastHelpers.apiError('Delete category', error)
     }
   })
 
-  const resetProductForm = () => {
-    setCreateProductForm({
-      name: '',
-      description: '',
-      price: '',
-      category_id: '',
-      image_url: '',
-      available: true
-    })
+  // Form handlers
+  const handleFormSuccess = () => {
+    setViewMode('list')
+    setEditingProduct(null)
+    setEditingCategory(null)
   }
 
-  const resetCategoryForm = () => {
-    setCreateCategoryForm({
-      name: '',
-      description: ''
-    })
+  const handleCancelForm = () => {
+    setViewMode('list')
+    setEditingProduct(null)
+    setEditingCategory(null)
   }
 
-  const handleCreateProduct = (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!createProductForm.name || !createProductForm.price || !createProductForm.category_id) {
-      alert('Please fill in all required fields')
-      return
-    }
-    createProductMutation.mutate(createProductForm)
-  }
-
-  const handleCreateCategory = (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!createCategoryForm.name) {
-      alert('Please enter a category name')
-      return
-    }
-    createCategoryMutation.mutate(createCategoryForm)
-  }
-
+  // Delete handlers
   const handleDeleteProduct = (product: Product) => {
-    if (confirm(`Are you sure you want to delete "${product.name}"?`)) {
-      deleteProductMutation.mutate(product.id.toString())
+    if (confirm(`Are you sure you want to delete "${product.name}"? This action cannot be undone.`)) {
+      deleteProductMutation.mutate({ 
+        id: product.id.toString(), 
+        name: product.name 
+      })
     }
   }
 
   const handleDeleteCategory = (category: Category) => {
-    if (confirm(`Are you sure you want to delete "${category.name}"? This will affect all products in this category.`)) {
-      deleteCategoryMutation.mutate(category.id.toString())
+    const productsInCategory = products.filter(p => p.category_id === category.id)
+    
+    if (productsInCategory.length > 0) {
+      toastHelpers.warning(
+        'Cannot Delete Category', 
+        `"${category.name}" contains ${productsInCategory.length} products. Move or delete those products first.`
+      )
+      return
+    }
+
+    if (confirm(`Are you sure you want to delete category "${category.name}"?`)) {
+      deleteCategoryMutation.mutate({ 
+        id: category.id.toString(), 
+        name: category.name 
+      })
     }
   }
 
-  const filteredProducts = products?.filter(product => {
-    const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         product.description.toLowerCase().includes(searchTerm.toLowerCase())
-    const matchesCategory = selectedCategory === 'all' || product.category_id.toString() === selectedCategory
-    return matchesSearch && matchesCategory
-  }) || []
+  // Data is already filtered on the server side, so we use it directly
+  const filteredProducts = products
+  const filteredCategories = categories
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD'
-    }).format(amount)
-  }
-
-  const isLoading = productsLoading || categoriesLoading
-
-  if (isLoading) {
+  // Show forms
+  if (viewMode === 'product-form') {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+      <div className="p-6">
+        <ProductForm
+          product={editingProduct || undefined}
+          mode={editingProduct ? 'edit' : 'create'}
+          onSuccess={handleFormSuccess}
+          onCancel={handleCancelForm}
+        />
       </div>
     )
   }
 
+  if (viewMode === 'category-form') {
+    return (
+      <div className="p-6">
+        <CategoryForm
+          category={editingCategory || undefined}
+          mode={editingCategory ? 'edit' : 'create'}
+          onSuccess={handleFormSuccess}
+          onCancel={handleCancelForm}
+        />
+      </div>
+    )
+  }
+
+  // Main list view
   return (
     <div className="p-6 space-y-6">
       {/* Header */}
@@ -232,372 +218,304 @@ export function AdminMenuManagement() {
         <div>
           <h2 className="text-3xl font-bold tracking-tight">Menu Management</h2>
           <p className="text-muted-foreground">
-            Manage restaurant menu items and categories
+            Manage your restaurant's products and categories
           </p>
-        </div>
-        <div className="flex gap-2">
-          <Button 
-            variant={activeTab === 'categories' ? 'default' : 'outline'} 
-            onClick={() => setActiveTab('categories')}
-          >
-            <Tag className="w-4 h-4 mr-2" />
-            Categories
-          </Button>
-          <Button 
-            variant={activeTab === 'products' ? 'default' : 'outline'} 
-            onClick={() => setActiveTab('products')}
-          >
-            <Package className="w-4 h-4 mr-2" />
-            Products
-          </Button>
         </div>
       </div>
 
-      {/* Products Tab */}
-      {activeTab === 'products' && (
-        <>
-          {/* Controls */}
-          <div className="flex items-center justify-between gap-4">
-            <div className="flex items-center gap-4 flex-1">
-              <div className="relative max-w-sm">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
-                <Input
-                  placeholder="Search products..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
-              
-              <select
-                className="p-2 border border-input rounded-md bg-background"
-                value={selectedCategory}
-                onChange={(e) => setSelectedCategory(e.target.value)}
-              >
-                <option value="all">All Categories</option>
-                {categories?.map(category => (
-                  <option key={category.id} value={category.id.toString()}>
-                    {category.name}
-                  </option>
-                ))}
-              </select>
+      {/* Tabs */}
+      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="space-y-6">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="products" className="gap-2">
+            <Package className="h-4 w-4" />
+            Products ({productsPaginationInfo.total || products.length})
+          </TabsTrigger>
+          <TabsTrigger value="categories" className="gap-2">
+            <Tag className="h-4 w-4" />
+            Categories ({categoriesPaginationInfo.total || categories.length})
+          </TabsTrigger>
+        </TabsList>
 
-              <Badge variant="outline">
-                {filteredProducts.length} products
-              </Badge>
+        {/* Products Tab */}
+        <TabsContent value="products" className="space-y-6">
+          {/* Products Controls */}
+          <div className="flex items-center justify-between">
+            <div className="relative flex-1 max-w-sm">
+              <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search products..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-8"
+              />
             </div>
-
-            <Button onClick={() => setShowCreateProductForm(true)}>
-              <Plus className="w-4 h-4 mr-2" />
+            <Button 
+              onClick={() => {
+                setEditingProduct(null)
+                setViewMode('product-form')
+              }} 
+              className="gap-2"
+            >
+              <Plus className="h-4 w-4" />
               Add Product
             </Button>
           </div>
 
-          {/* Create Product Form */}
-          {showCreateProductForm && (
-            <Card className="border-primary">
-              <CardHeader>
-                <CardTitle>Add New Product</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <form onSubmit={handleCreateProduct} className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="text-sm font-medium mb-2 block">Product Name</label>
-                      <Input
-                        value={createProductForm.name}
-                        onChange={(e) => setCreateProductForm({...createProductForm, name: e.target.value})}
-                        required
-                      />
+          {/* Products List */}
+          {isLoadingProducts ? (
+            <div className="flex items-center justify-center min-h-[400px]">
+              <div className="text-center">
+                <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                <p>Loading products...</p>
+              </div>
+            </div>
+          ) : filteredProducts.length === 0 ? (
+            <Card>
+              <CardContent className="pt-6">
+                <div className="text-center py-8">
+                  <Package className="mx-auto h-12 w-12 text-gray-400" />
+                  <h3 className="mt-2 text-sm font-medium text-gray-900">No products</h3>
+                  <p className="mt-1 text-sm text-gray-500">
+                    {searchTerm ? 'No products match your search.' : 'Get started by adding your first product.'}
+                  </p>
+                  {!searchTerm && (
+                    <div className="mt-6">
+                      <Button onClick={() => setViewMode('product-form')} className="gap-2">
+                        <Plus className="h-4 w-4" />
+                        Add Product
+                      </Button>
                     </div>
-                    <div>
-                      <label className="text-sm font-medium mb-2 block">Price ($)</label>
-                      <Input
-                        type="number"
-                        step="0.01"
-                        value={createProductForm.price}
-                        onChange={(e) => setCreateProductForm({...createProductForm, price: e.target.value})}
-                        required
-                      />
-                    </div>
-                  </div>
-                  
-                  <div>
-                    <label className="text-sm font-medium mb-2 block">Description</label>
-                    <Input
-                      value={createProductForm.description}
-                      onChange={(e) => setCreateProductForm({...createProductForm, description: e.target.value})}
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="text-sm font-medium mb-2 block">Category</label>
-                      <select
-                        className="w-full p-2 border border-input rounded-md bg-background"
-                        value={createProductForm.category_id}
-                        onChange={(e) => setCreateProductForm({...createProductForm, category_id: e.target.value})}
-                        required
-                      >
-                        <option value="">Select Category</option>
-                        {categories?.map(category => (
-                          <option key={category.id} value={category.id.toString()}>
-                            {category.name}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium mb-2 block">Image URL (Optional)</label>
-                      <Input
-                        value={createProductForm.image_url}
-                        onChange={(e) => setCreateProductForm({...createProductForm, image_url: e.target.value})}
-                        placeholder="https://example.com/image.jpg"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      id="available"
-                      checked={createProductForm.available}
-                      onChange={(e) => setCreateProductForm({...createProductForm, available: e.target.checked})}
-                      className="rounded"
-                    />
-                    <label htmlFor="available" className="text-sm font-medium">
-                      Available for sale
-                    </label>
-                  </div>
-
-                  <div className="flex justify-end gap-2 pt-4">
-                    <Button 
-                      type="button" 
-                      variant="outline" 
-                      onClick={() => setShowCreateProductForm(false)}
-                    >
-                      Cancel
-                    </Button>
-                    <Button 
-                      type="submit"
-                      disabled={createProductMutation.isPending}
-                    >
-                      {createProductMutation.isPending ? 'Creating...' : 'Create Product'}
-                    </Button>
-                  </div>
-                </form>
+                  )}
+                </div>
               </CardContent>
             </Card>
-          )}
-
-          {/* Products Grid */}
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {filteredProducts.map((product) => {
-              const category = categories?.find(c => c.id === product.category_id)
-              return (
-                <Card key={product.id} className="hover:shadow-md transition-shadow">
-                  <CardContent className="p-4">
-                    <div className="aspect-video bg-muted rounded-lg mb-4 flex items-center justify-center overflow-hidden">
-                      {product.image_url ? (
-                        <img 
-                          src={product.image_url} 
-                          alt={product.name}
-                          className="w-full h-full object-cover"
-                          onError={(e) => {
-                            e.currentTarget.style.display = 'none'
-                            e.currentTarget.nextElementSibling?.classList.remove('hidden')
-                          }}
-                        />
-                      ) : null}
-                      <div className={product.image_url ? 'hidden' : 'flex items-center justify-center text-muted-foreground'}>
-                        <ImageIcon className="w-12 h-12" />
-                      </div>
-                    </div>
-                    
-                    <div className="space-y-2">
+          ) : (
+            <div className="grid gap-4">
+              {filteredProducts.map((product) => {
+                const category = allCategories.find(c => c.id === product.category_id)
+                return (
+                  <Card key={product.id} className="hover:shadow-md transition-shadow">
+                    <CardContent className="pt-6">
                       <div className="flex items-start justify-between">
-                        <h3 className="font-semibold text-lg">{product.name}</h3>
-                        <Badge variant={product.available ? 'default' : 'secondary'}>
-                          {product.available ? 'Available' : 'Unavailable'}
-                        </Badge>
+                        <div className="flex items-start space-x-4">
+                          {product.image_url ? (
+                            <img 
+                              src={product.image_url} 
+                              alt={product.name}
+                              className="w-16 h-16 rounded-lg object-cover"
+                            />
+                          ) : (
+                            <div className="w-16 h-16 rounded-lg bg-gray-100 flex items-center justify-center">
+                              <Image className="h-8 w-8 text-gray-400" />
+                            </div>
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-3 mb-2">
+                              <h3 className="text-lg font-semibold">{product.name}</h3>
+                              <Badge 
+                                variant={product.status === 'active' ? 'default' : 'secondary'}
+                                className="gap-1"
+                              >
+                                {product.status === 'active' ? (
+                                  <Package className="h-3 w-3" />
+                                ) : (
+                                  <Archive className="h-3 w-3" />
+                                )}
+                                {product.status}
+                              </Badge>
+                            </div>
+                            {product.description && (
+                              <p className="text-sm text-muted-foreground mb-2">{product.description}</p>
+                            )}
+                            <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                              <span className="flex items-center gap-1">
+                                <DollarSign className="h-4 w-4" />
+                                ${product.price.toFixed(2)}
+                              </span>
+                              <span className="flex items-center gap-1">
+                                <Tag className="h-4 w-4" />
+                                {category?.name || 'No Category'}
+                              </span>
+                              <span className="flex items-center gap-1">
+                                <Clock className="h-4 w-4" />
+                                {product.preparation_time || 5}min
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => {
+                              setEditingProduct(product)
+                              setViewMode('product-form')
+                            }}
+                            className="gap-2"
+                          >
+                            <Edit className="h-4 w-4" />
+                            Edit
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleDeleteProduct(product)}
+                            disabled={deleteProductMutation.isPending}
+                            className="gap-2 text-red-600 hover:text-red-700 hover:border-red-300"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                            Delete
+                          </Button>
+                        </div>
                       </div>
-                      
-                      <p className="text-muted-foreground text-sm line-clamp-2">
-                        {product.description}
-                      </p>
-                      
-                      <div className="flex items-center justify-between">
-                        <span className="text-2xl font-bold text-primary">
-                          {formatCurrency(product.price)}
-                        </span>
-                        <Badge variant="outline">
-                          {category?.name || 'Unknown'}
-                        </Badge>
-                      </div>
-                      
-                      <div className="flex gap-2 pt-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="flex-1"
-                          onClick={() => setSelectedProduct(product)}
-                        >
-                          <Edit className="w-4 h-4 mr-1" />
-                          Edit
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleDeleteProduct(product)}
-                          className="text-destructive hover:text-destructive"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              )
-            })}
-            
-            {filteredProducts.length === 0 && (
-              <Card className="md:col-span-2 lg:col-span-3">
-                <CardContent className="p-12 text-center">
-                  <Package className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-                  <p className="text-muted-foreground">No products found</p>
-                  <Button 
-                    variant="outline" 
-                    className="mt-4"
-                    onClick={() => setShowCreateProductForm(true)}
-                  >
-                    Add Your First Product
-                  </Button>
-                </CardContent>
-              </Card>
-            )}
-          </div>
-        </>
-      )}
+                    </CardContent>
+                  </Card>
+                )
+              })}
+            </div>
+          )}
+          
+          {/* Pagination for Products */}
+          {filteredProducts.length > 0 && (
+            <PaginationControlsComponent
+              pagination={productsPagination}
+              total={productsPaginationInfo.total || products.length}
+              className="mt-6"
+            />
+          )}
+        </TabsContent>
 
-      {/* Categories Tab */}
-      {activeTab === 'categories' && (
-        <>
+        {/* Categories Tab */}
+        <TabsContent value="categories" className="space-y-6">
+          {/* Categories Controls */}
           <div className="flex items-center justify-between">
-            <Badge variant="outline">
-              {categories?.length || 0} categories
-            </Badge>
-            <Button onClick={() => setShowCreateCategoryForm(true)}>
-              <Plus className="w-4 h-4 mr-2" />
+            <div className="relative flex-1 max-w-sm">
+              <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search categories..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-8"
+              />
+            </div>
+            <Button 
+              onClick={() => {
+                setEditingCategory(null)
+                setViewMode('category-form')
+              }} 
+              className="gap-2"
+            >
+              <Plus className="h-4 w-4" />
               Add Category
             </Button>
           </div>
 
-          {/* Create Category Form */}
-          {showCreateCategoryForm && (
-            <Card className="border-primary">
-              <CardHeader>
-                <CardTitle>Add New Category</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <form onSubmit={handleCreateCategory} className="space-y-4">
-                  <div>
-                    <label className="text-sm font-medium mb-2 block">Category Name</label>
-                    <Input
-                      value={createCategoryForm.name}
-                      onChange={(e) => setCreateCategoryForm({...createCategoryForm, name: e.target.value})}
-                      required
-                    />
-                  </div>
-                  
-                  <div>
-                    <label className="text-sm font-medium mb-2 block">Description (Optional)</label>
-                    <Input
-                      value={createCategoryForm.description}
-                      onChange={(e) => setCreateCategoryForm({...createCategoryForm, description: e.target.value})}
-                    />
-                  </div>
-
-                  <div className="flex justify-end gap-2 pt-4">
-                    <Button 
-                      type="button" 
-                      variant="outline" 
-                      onClick={() => setShowCreateCategoryForm(false)}
-                    >
-                      Cancel
-                    </Button>
-                    <Button 
-                      type="submit"
-                      disabled={createCategoryMutation.isPending}
-                    >
-                      {createCategoryMutation.isPending ? 'Creating...' : 'Create Category'}
-                    </Button>
-                  </div>
-                </form>
+          {/* Categories List */}
+          {isLoadingCategories ? (
+            <div className="flex items-center justify-center min-h-[400px]">
+              <div className="text-center">
+                <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                <p>Loading categories...</p>
+              </div>
+            </div>
+          ) : filteredCategories.length === 0 ? (
+            <Card>
+              <CardContent className="pt-6">
+                <div className="text-center py-8">
+                  <Tag className="mx-auto h-12 w-12 text-gray-400" />
+                  <h3 className="mt-2 text-sm font-medium text-gray-900">No categories</h3>
+                  <p className="mt-1 text-sm text-gray-500">
+                    {searchTerm ? 'No categories match your search.' : 'Get started by creating your first category.'}
+                  </p>
+                  {!searchTerm && (
+                    <div className="mt-6">
+                      <Button onClick={() => setViewMode('category-form')} className="gap-2">
+                        <Plus className="h-4 w-4" />
+                        Add Category
+                      </Button>
+                    </div>
+                  )}
+                </div>
               </CardContent>
             </Card>
+          ) : (
+            <div className="grid gap-4">
+              {filteredCategories.map((category) => {
+                // Note: This is a simplified check - in production you'd want to check the total count from the API
+                const productsInCategory = products.filter(p => p.category_id === category.id)
+                return (
+                  <Card key={category.id} className="hover:shadow-md transition-shadow">
+                    <CardContent className="pt-6">
+                      <div className="flex items-start justify-between">
+                        <div className="flex items-start space-x-4">
+                          {category.image_url ? (
+                            <img 
+                              src={category.image_url} 
+                              alt={category.name}
+                              className="w-16 h-16 rounded-lg object-cover"
+                            />
+                          ) : (
+                            <div className="w-16 h-16 rounded-lg bg-gray-100 flex items-center justify-center">
+                              <Tag className="h-8 w-8 text-gray-400" />
+                            </div>
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-3 mb-2">
+                              <h3 className="text-lg font-semibold">{category.name}</h3>
+                              <Badge variant="outline">
+                                {productsInCategory.length} products
+                              </Badge>
+                            </div>
+                            {category.description && (
+                              <p className="text-sm text-muted-foreground mb-2">{category.description}</p>
+                            )}
+                            <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                              <span>Sort Order: {category.sort_order || 0}</span>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => {
+                              setEditingCategory(category)
+                              setViewMode('category-form')
+                            }}
+                            className="gap-2"
+                          >
+                            <Edit className="h-4 w-4" />
+                            Edit
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleDeleteCategory(category)}
+                            disabled={deleteCategoryMutation.isPending}
+                            className="gap-2 text-red-600 hover:text-red-700 hover:border-red-300"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                            Delete
+                          </Button>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )
+              })}
+            </div>
           )}
 
-          {/* Categories List */}
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {categories?.map((category) => {
-              const productCount = products?.filter(p => p.category_id === category.id).length || 0
-              return (
-                <Card key={category.id} className="hover:shadow-md transition-shadow">
-                  <CardContent className="p-6">
-                    <div className="flex items-start justify-between mb-4">
-                      <div>
-                        <h3 className="font-semibold text-lg mb-2">{category.name}</h3>
-                        <p className="text-muted-foreground text-sm">
-                          {category.description || 'No description'}
-                        </p>
-                      </div>
-                      <Badge variant="secondary">
-                        {productCount} items
-                      </Badge>
-                    </div>
-                    
-                    <div className="flex gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="flex-1"
-                        onClick={() => setSelectedCategoryEdit(category)}
-                      >
-                        <Edit className="w-4 h-4 mr-1" />
-                        Edit
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleDeleteCategory(category)}
-                        className="text-destructive hover:text-destructive"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              )
-            })}
-            
-            {(!categories || categories.length === 0) && (
-              <Card className="md:col-span-2 lg:col-span-3">
-                <CardContent className="p-12 text-center">
-                  <Tag className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-                  <p className="text-muted-foreground">No categories found</p>
-                  <Button 
-                    variant="outline" 
-                    className="mt-4"
-                    onClick={() => setShowCreateCategoryForm(true)}
-                  >
-                    Add Your First Category
-                  </Button>
-                </CardContent>
-              </Card>
-            )}
-          </div>
-        </>
-      )}
+          {/* Pagination for Categories */}
+          {filteredCategories.length > 0 && (
+            <PaginationControlsComponent
+              pagination={categoriesPagination}
+              total={categoriesPaginationInfo.total || categories.length}
+              className="mt-6"
+            />
+          )}
+        </TabsContent>
+      </Tabs>
     </div>
   )
 }

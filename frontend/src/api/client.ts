@@ -321,6 +321,54 @@ class APIClient {
     });
   }
 
+  // Admin-specific product management
+  async createProduct(productData: any): Promise<APIResponse<Product>> {
+    return this.request({ method: 'POST', url: '/admin/products', data: productData });
+  }
+
+  async updateProduct(id: string, productData: any): Promise<APIResponse<Product>> {
+    return this.request({ method: 'PUT', url: `/admin/products/${id}`, data: productData });
+  }
+
+  async deleteProduct(id: string): Promise<APIResponse> {
+    return this.request({ method: 'DELETE', url: `/admin/products/${id}` });
+  }
+
+  // Admin-specific category management  
+  async createCategory(categoryData: any): Promise<APIResponse<Category>> {
+    return this.request({ method: 'POST', url: '/admin/categories', data: categoryData });
+  }
+
+  async updateCategory(id: string, categoryData: any): Promise<APIResponse<Category>> {
+    return this.request({ method: 'PUT', url: `/admin/categories/${id}`, data: categoryData });
+  }
+
+  async deleteCategory(id: string): Promise<APIResponse> {
+    return this.request({ method: 'DELETE', url: `/admin/categories/${id}` });
+  }
+
+  // Admin tables endpoint with pagination
+  async getAdminTables(params?: { page?: number, limit?: number, search?: string, status?: string }): Promise<APIResponse<DiningTable[]>> {
+    return this.request({ 
+      method: 'GET', 
+      url: '/admin/tables',
+      params 
+    });
+  }
+
+  // Admin-specific table management
+  async createTable(tableData: any): Promise<APIResponse<DiningTable>> {
+    return this.request({ method: 'POST', url: '/admin/tables', data: tableData });
+  }
+
+  async updateTable(id: string, tableData: any): Promise<APIResponse<DiningTable>> {
+    return this.request({ method: 'PUT', url: `/admin/tables/${id}`, data: tableData });
+  }
+
+  async deleteTable(id: string): Promise<APIResponse> {
+    return this.request({ method: 'DELETE', url: `/admin/tables/${id}` });
+  }
+
   // Utility methods
   setAuthToken(token: string): void {
     localStorage.setItem('pos_token', token);

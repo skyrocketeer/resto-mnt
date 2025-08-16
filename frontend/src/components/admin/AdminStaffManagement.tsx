@@ -1,6 +1,6 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
@@ -11,129 +11,129 @@ import {
   Mail,
   Calendar,
   Shield,
-  Eye,
-  EyeOff
+  Edit
 } from 'lucide-react'
 import apiClient from '@/api/client'
+import { toastHelpers } from '@/lib/toast-helpers'
+import { UserForm } from '@/components/forms/UserForm'
+import { PaginationControlsComponent } from '@/components/ui/pagination-controls'
+import { usePagination } from '@/hooks/usePagination'
 import type { User } from '@/types'
-
-interface CreateUserForm {
-  username: string
-  email: string
-  password: string
-  first_name: string
-  last_name: string
-  role: string
-}
-
-const ROLES = [
-  { value: 'admin', label: 'Admin', color: 'destructive' },
-  { value: 'manager', label: 'Manager', color: 'default' },
-  { value: 'server', label: 'Server', color: 'secondary' },
-  { value: 'counter', label: 'Counter', color: 'outline' },
-  { value: 'kitchen', label: 'Kitchen', color: 'secondary' }
-]
 
 export function AdminStaffManagement() {
   const [searchTerm, setSearchTerm] = useState('')
+  const [debouncedSearch, setDebouncedSearch] = useState('')
   const [showCreateForm, setShowCreateForm] = useState(false)
-  // const [selectedUser, setSelectedUser] = useState<User | null>(null) // TODO: Implement user editing
-  const [showPassword, setShowPassword] = useState(false)
-  const [createForm, setCreateForm] = useState<CreateUserForm>({
-    username: '',
-    email: '',
-    password: '',
-    first_name: '',
-    last_name: '',
-    role: 'server'
-  })
+  const [editingUser, setEditingUser] = useState<User | null>(null)
 
   const queryClient = useQueryClient()
 
-  // Fetch users
-  const { data: users, isLoading } = useQuery({
-    queryKey: ['users'],
-    queryFn: () => apiClient.getUsers().then(res => res.data)
+  // Pagination hook
+  const pagination = usePagination({ 
+    initialPage: 1, 
+    initialPageSize: 10,
+    total: 0 
   })
 
-  // Create user mutation
-  const createUserMutation = useMutation({
-    mutationFn: (userData: CreateUserForm) => apiClient.createUser(userData),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['users'] })
-      setShowCreateForm(false)
-      setCreateForm({
-        username: '',
-        email: '',
-        password: '',
-        first_name: '',
-        last_name: '',
-        role: 'server'
-      })
-      alert('User created successfully!')
-    },
-    onError: (error: any) => {
-      alert(`Failed to create user: ${error.message}`)
+  // Debounce search term
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchTerm)
+      pagination.goToFirstPage()
+    }, 500)
+    return () => clearTimeout(timer)
+  }, [searchTerm])
+
+  // Fetch users with pagination
+  const { data: usersData, isLoading } = useQuery({
+    queryKey: ['users', pagination.page, pagination.pageSize, debouncedSearch],
+    queryFn: () => apiClient.getUsers({
+      page: pagination.page,
+      limit: pagination.pageSize,
+      search: debouncedSearch || undefined
+    }).then(res => res.data),
+    keepPreviousData: true,
+  })
+
+  // Extract data and pagination info
+  const users = Array.isArray(usersData) ? usersData : (usersData as any)?.data || []
+  const paginationInfo = (usersData as any)?.pagination || { total: 0 }
+
+  // Update pagination total
+  useEffect(() => {
+    if (paginationInfo.total !== undefined) {
+      pagination.goToPage(pagination.page)
     }
-  })
+  }, [paginationInfo.total])
 
-  // TODO: Implement user editing functionality
-  // const updateUserMutation = useMutation({
-  //   mutationFn: ({ id, userData }: { id: string, userData: Partial<User> }) => 
-  //     apiClient.updateUser(id, userData),
-  //   onSuccess: () => {
-  //     queryClient.invalidateQueries({ queryKey: ['users'] })
-  //     setSelectedUser(null)
-  //     alert('User updated successfully!')
-  //   },
-  //   onError: (error: any) => {
-  //     alert(`Failed to update user: ${error.message}`)
-  //   }
-  // })
-
-  // Delete user mutation
+  // Delete user mutation (keep existing functionality)  
   const deleteUserMutation = useMutation({
-    mutationFn: (id: string) => apiClient.deleteUser(id),
-    onSuccess: () => {
+    mutationFn: ({ id, username }: { id: string, username: string }) => apiClient.deleteUser(id),
+    onSuccess: (_, { username: deletedUsername }) => {
       queryClient.invalidateQueries({ queryKey: ['users'] })
-      alert('User deleted successfully!')
+      toastHelpers.userDeleted(deletedUsername)
     },
     onError: (error: any) => {
-      alert(`Failed to delete user: ${error.message}`)
+      toastHelpers.apiError('Delete user', error)
     }
   })
 
-  const handleCreateUser = (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!createForm.username || !createForm.email || !createForm.password) {
-      alert('Please fill in all required fields')
-      return
-    }
-    createUserMutation.mutate(createForm)
+  const handleFormSuccess = () => {
+    setShowCreateForm(false)
+    setEditingUser(null)
+  }
+
+  const handleCancelForm = () => {
+    setShowCreateForm(false)
+    setEditingUser(null)
   }
 
   const handleDeleteUser = (user: User) => {
     if (confirm(`Are you sure you want to delete ${user.first_name} ${user.last_name}?`)) {
-      deleteUserMutation.mutate(user.id.toString())
+      deleteUserMutation.mutate({ 
+        id: user.id.toString(), 
+        username: `${user.first_name} ${user.last_name}` 
+      })
     }
   }
 
-  const filteredUsers = users?.filter(user => 
-    user.first_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    user.last_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    user.username.toLowerCase().includes(searchTerm.toLowerCase())
-  ) || []
+  // Data is already filtered on the server side
+  const filteredUsers = users
 
-  const getRoleBadgeVariant = (role: string): "default" | "secondary" | "destructive" | "outline" => {
-    const roleConfig = ROLES.find(r => r.value === role)
-    return roleConfig?.color as "default" | "secondary" | "destructive" | "outline" || 'outline'
+  const getRoleBadgeColor = (role: string) => {
+    switch (role) {
+      case 'admin': return 'bg-red-100 text-red-800 hover:bg-red-200'
+      case 'manager': return 'bg-purple-100 text-purple-800 hover:bg-purple-200'
+      case 'server': return 'bg-blue-100 text-blue-800 hover:bg-blue-200'
+      case 'counter': return 'bg-green-100 text-green-800 hover:bg-green-200'
+      case 'kitchen': return 'bg-orange-100 text-orange-800 hover:bg-orange-200'
+      default: return 'bg-gray-100 text-gray-800 hover:bg-gray-200'
+    }
+  }
+
+  // Show form if creating or editing
+  if (showCreateForm || editingUser) {
+    return (
+      <div className="p-6">
+        <UserForm
+          user={editingUser || undefined}
+          mode={editingUser ? 'edit' : 'create'}
+          onSuccess={handleFormSuccess}
+          onCancel={handleCancelForm}
+        />
+      </div>
+    )
   }
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+      <div className="p-6">
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+            <p>Loading staff members...</p>
+          </div>
+        </div>
       </div>
     )
   }
@@ -145,204 +145,123 @@ export function AdminStaffManagement() {
         <div>
           <h2 className="text-3xl font-bold tracking-tight">Staff Management</h2>
           <p className="text-muted-foreground">
-            Manage restaurant staff and user roles
+            Manage your restaurant staff and their permissions
           </p>
         </div>
-        <Button onClick={() => setShowCreateForm(true)}>
-          <UserPlus className="w-4 h-4 mr-2" />
-          Add Staff Member
+        <Button onClick={() => setShowCreateForm(true)} className="gap-2">
+          <UserPlus className="h-4 w-4" />
+          Add New Staff
         </Button>
       </div>
 
       {/* Search */}
-      <div className="flex items-center gap-4">
-        <div className="relative flex-1 max-w-sm">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
-          <Input
-            placeholder="Search staff members..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10"
-          />
-        </div>
-        <Badge variant="outline">
-          {filteredUsers.length} members
-        </Badge>
-      </div>
-
-      {/* Create User Form Modal */}
-      {showCreateForm && (
-        <Card className="border-primary">
-          <CardHeader>
-            <CardTitle>Add New Staff Member</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleCreateUser} className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="text-sm font-medium mb-2 block">First Name</label>
-                  <Input
-                    value={createForm.first_name}
-                    onChange={(e) => setCreateForm({...createForm, first_name: e.target.value})}
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="text-sm font-medium mb-2 block">Last Name</label>
-                  <Input
-                    value={createForm.last_name}
-                    onChange={(e) => setCreateForm({...createForm, last_name: e.target.value})}
-                    required
-                  />
-                </div>
-              </div>
-              
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="text-sm font-medium mb-2 block">Username</label>
-                  <Input
-                    value={createForm.username}
-                    onChange={(e) => setCreateForm({...createForm, username: e.target.value})}
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="text-sm font-medium mb-2 block">Email</label>
-                  <Input
-                    type="email"
-                    value={createForm.email}
-                    onChange={(e) => setCreateForm({...createForm, email: e.target.value})}
-                    required
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="text-sm font-medium mb-2 block">Password</label>
-                  <div className="relative">
-                    <Input
-                      type={showPassword ? 'text' : 'password'}
-                      value={createForm.password}
-                      onChange={(e) => setCreateForm({...createForm, password: e.target.value})}
-                      required
-                    />
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      className="absolute right-0 top-0 h-full px-3"
-                      onClick={() => setShowPassword(!showPassword)}
-                    >
-                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                    </Button>
-                  </div>
-                </div>
-                <div>
-                  <label className="text-sm font-medium mb-2 block">Role</label>
-                  <select
-                    className="w-full p-2 border border-input rounded-md bg-background"
-                    value={createForm.role}
-                    onChange={(e) => setCreateForm({...createForm, role: e.target.value})}
-                  >
-                    {ROLES.map(role => (
-                      <option key={role.value} value={role.value}>
-                        {role.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              <div className="flex justify-end gap-2 pt-4">
-                <Button 
-                  type="button" 
-                  variant="outline" 
-                  onClick={() => setShowCreateForm(false)}
-                >
-                  Cancel
-                </Button>
-                <Button 
-                  type="submit"
-                  disabled={createUserMutation.isPending}
-                >
-                  {createUserMutation.isPending ? 'Creating...' : 'Create User'}
-                </Button>
-              </div>
-            </form>
-          </CardContent>
-        </Card>
-      )}
+      <Card>
+        <CardContent className="pt-6">
+          <div className="relative">
+            <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search staff by name, email, or username..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-8"
+            />
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Staff List */}
       <div className="grid gap-4">
-        {filteredUsers.map((user) => (
-          <Card key={user.id} className="hover:shadow-md transition-shadow">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center">
-                    <span className="text-lg font-bold text-primary">
-                      {user.first_name[0]}{user.last_name[0]}
-                    </span>
-                  </div>
-                  
-                  <div>
-                    <h3 className="font-semibold text-lg">
-                      {user.first_name} {user.last_name}
-                    </h3>
-                    <p className="text-muted-foreground">@{user.username}</p>
-                    <div className="flex items-center gap-4 mt-2 text-sm text-muted-foreground">
-                      <span className="flex items-center gap-1">
-                        <Mail className="w-4 h-4" />
-                        {user.email}
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <Calendar className="w-4 h-4" />
-                        Joined {new Date(user.created_at).toLocaleDateString()}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-3">
-                  <Badge variant={getRoleBadgeVariant(user.role)}>
-                    <Shield className="w-3 h-3 mr-1" />
-                    {user.role.toUpperCase()}
-                  </Badge>
-                  
-                  <div className="flex gap-1">
-                    {/* TODO: Implement edit functionality */}
-                    {/* <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setSelectedUser(user)}
-                    >
-                      <Edit className="w-4 h-4" />
-                    </Button> */}
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleDeleteUser(user)}
-                      className="text-destructive hover:text-destructive"
-                    >
-                      <Trash2 className="w-4 h-4" />
+        {filteredUsers.length === 0 ? (
+          <Card>
+            <CardContent className="pt-6">
+              <div className="text-center py-8">
+                <UserPlus className="mx-auto h-12 w-12 text-gray-400" />
+                <h3 className="mt-2 text-sm font-medium text-gray-900">No staff members</h3>
+                <p className="mt-1 text-sm text-gray-500">
+                  {searchTerm ? 'No staff members match your search.' : 'Get started by adding a new staff member.'}
+                </p>
+                {!searchTerm && (
+                  <div className="mt-6">
+                    <Button onClick={() => setShowCreateForm(true)} className="gap-2">
+                      <UserPlus className="h-4 w-4" />
+                      Add New Staff
                     </Button>
                   </div>
-                </div>
+                )}
               </div>
             </CardContent>
           </Card>
-        ))}
-        
-        {filteredUsers.length === 0 && (
-          <Card>
-            <CardContent className="p-12 text-center">
-              <p className="text-muted-foreground">No staff members found</p>
-            </CardContent>
-          </Card>
+        ) : (
+          filteredUsers.map((user) => (
+            <Card key={user.id} className="hover:shadow-md transition-shadow">
+              <CardContent className="pt-6">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-4">
+                    <div className="flex-shrink-0">
+                      <div className="h-10 w-10 rounded-full bg-gray-300 flex items-center justify-center">
+                        <span className="text-sm font-medium text-gray-700">
+                          {user.first_name[0]}{user.last_name[0]}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-3">
+                        <p className="text-lg font-semibold text-gray-900">
+                          {user.first_name} {user.last_name}
+                        </p>
+                        <Badge className={getRoleBadgeColor(user.role)}>
+                          <Shield className="w-3 h-3 mr-1" />
+                          {user.role}
+                        </Badge>
+                      </div>
+                      <div className="flex items-center mt-1 text-sm text-gray-500 space-x-4">
+                        <span className="flex items-center gap-1">
+                          <Mail className="h-4 w-4" />
+                          {user.email}
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <Calendar className="h-4 w-4" />
+                          Joined {new Date(user.created_at).toLocaleDateString()}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setEditingUser(user)}
+                      className="gap-2"
+                    >
+                      <Edit className="h-4 w-4" />
+                      Edit
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleDeleteUser(user)}
+                      disabled={deleteUserMutation.isPending}
+                      className="gap-2 text-red-600 hover:text-red-700 hover:border-red-300"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                      Delete
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))
         )}
       </div>
+
+      {/* Pagination */}
+      {filteredUsers.length > 0 && (
+        <PaginationControlsComponent
+          pagination={pagination}
+          total={paginationInfo.total || users.length}
+          className="mt-6"
+        />
+      )}
     </div>
   )
 }
