@@ -12,6 +12,7 @@ interface KitchenLayoutProps {
 
 export function KitchenLayout({ user }: KitchenLayoutProps) {
   const [selectedStatus, setSelectedStatus] = useState<string>('all')
+  const [isTabletOptimized, setIsTabletOptimized] = useState(true) // Kitchen is primarily tablet-focused
   const [searchQuery, setSearchQuery] = useState('')
   const [autoRefresh, setAutoRefresh] = useState(true)
 

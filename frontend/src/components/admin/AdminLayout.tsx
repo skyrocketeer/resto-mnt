@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 // import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card' // Removed - not used in simplified layout
@@ -90,6 +90,26 @@ const adminSections = [
 export function AdminLayout({ user }: AdminLayoutProps) {
   const [currentSection, setCurrentSection] = useState('dashboard')
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+  const [isMobile, setIsMobile] = useState(false)
+  const [isTablet, setIsTablet] = useState(false)
+
+  // Responsive breakpoint detection
+  useEffect(() => {
+    const checkScreenSize = () => {
+      const width = window.innerWidth
+      setIsMobile(width < 768) // md breakpoint
+      setIsTablet(width >= 768 && width < 1024) // md to lg breakpoint
+      
+      // Auto-collapse sidebar on mobile and tablet for better UX
+      if (width < 1024) {
+        setSidebarCollapsed(true)
+      }
+    }
+
+    checkScreenSize()
+    window.addEventListener('resize', checkScreenSize)
+    return () => window.removeEventListener('resize', checkScreenSize)
+  }, [])
 
   const handleLogout = () => {
     apiClient.clearAuth()
@@ -126,52 +146,82 @@ export function AdminLayout({ user }: AdminLayoutProps) {
   // const currentSectionInfo = adminSections.find(s => s.id === currentSection) // Removed with top header
 
   return (
-    <div className="min-h-screen bg-background flex">
+    <div className="min-h-screen bg-background flex relative">
+      {/* Mobile/Tablet Overlay */}
+      {(isMobile || isTablet) && !sidebarCollapsed && (
+        <div 
+          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+          onClick={() => setSidebarCollapsed(true)}
+        />
+      )}
+
       {/* Sidebar */}
-      <div className={`bg-card border-r border-border transition-all duration-300 flex flex-col ${
-        sidebarCollapsed ? 'w-16' : 'w-64'
+      <div className={`bg-card border-r border-border transition-all duration-300 flex flex-col z-50 ${
+        (isMobile || isTablet) 
+          ? `fixed left-0 top-0 h-full ${sidebarCollapsed ? '-translate-x-full w-0' : 'translate-x-0 w-80'}` 
+          : `relative ${sidebarCollapsed ? 'w-16' : 'w-64'}`
       }`}>
         {/* Header */}
         <div className="p-4">
-          <div className="flex items-center justify-between mb-8">
+          <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-3">
-              <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-                <ShoppingCart className="w-5 h-5 text-primary-foreground" />
+              <div className={`bg-primary rounded-lg flex items-center justify-center ${
+                (isMobile || isTablet) ? 'w-10 h-10' : 'w-8 h-8'
+              }`}>
+                <ShoppingCart className={`text-primary-foreground ${
+                  (isMobile || isTablet) ? 'w-6 h-6' : 'w-5 h-5'
+                }`} />
               </div>
-              {!sidebarCollapsed && (
+              {(!sidebarCollapsed || (isMobile || isTablet)) && (
                 <div>
-                  <span className="text-xl font-bold">POS Admin</span>
-                  <p className="text-xs text-muted-foreground">Restaurant Management</p>
+                  <span className={`font-bold ${
+                    (isMobile || isTablet) ? 'text-2xl' : 'text-xl'
+                  }`}>POS Admin</span>
+                  <p className={`text-muted-foreground ${
+                    (isMobile || isTablet) ? 'text-sm' : 'text-xs'
+                  }`}>Restaurant Management</p>
                 </div>
               )}
             </div>
             
-            {/* Toggle Button */}
+            {/* Toggle Button - Larger on tablet */}
             <Button
               variant="ghost"
-              size="sm"
+              size={isTablet ? "default" : "sm"}
               onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-              className="p-1 h-8 w-8"
+              className={isTablet ? "p-2 h-10 w-10" : "p-1 h-8 w-8"}
             >
-              <Menu className="w-4 h-4" />
+              <Menu className={isTablet ? "w-5 h-5" : "w-4 h-4"} />
             </Button>
           </div>
         </div>
 
         {/* Navigation */}
         <nav className="flex flex-col flex-1 px-4 pb-4">
-            <div className="space-y-2">
+            <div className={isTablet ? "space-y-3" : "space-y-2"}>
               {adminSections.map((section) => (
                 <Button
                   key={section.id}
                   variant={currentSection === section.id ? 'default' : 'ghost'}
-                  className={`w-full justify-start ${sidebarCollapsed ? 'px-2' : 'px-3'}`}
-                  onClick={() => setCurrentSection(section.id)}
-                  title={sidebarCollapsed ? section.label : undefined}
+                  className={`w-full justify-start transition-colors ${
+                    sidebarCollapsed && !isMobile && !isTablet ? 'px-2' : 'px-4'
+                  } ${
+                    isTablet ? 'h-12 text-base' : 'h-10 text-sm'
+                  }`}
+                  onClick={() => {
+                    setCurrentSection(section.id)
+                    // Auto-close sidebar on mobile/tablet after selection
+                    if (isMobile || isTablet) {
+                      setSidebarCollapsed(true)
+                    }
+                  }}
+                  title={sidebarCollapsed && !isMobile && !isTablet ? section.label : undefined}
                 >
-                  {section.icon}
-                  {!sidebarCollapsed && (
-                    <span className="ml-3">{section.label}</span>
+                  <span className={isTablet ? "w-6 h-6 flex items-center justify-center" : "w-5 h-5 flex items-center justify-center"}>
+                    {section.icon}
+                  </span>
+                  {(!sidebarCollapsed || isMobile || isTablet) && (
+                    <span className={`${isTablet ? 'ml-4' : 'ml-3'}`}>{section.label}</span>
                   )}
                 </Button>
               ))}
@@ -181,17 +231,25 @@ export function AdminLayout({ user }: AdminLayoutProps) {
             <div className="flex-1"></div>
             
             {/* User Info - Compact */}
-            {!sidebarCollapsed && (
-              <div className="mt-4 p-3 bg-muted/30 rounded-lg">
+            {(!sidebarCollapsed || isMobile || isTablet) && (
+              <div className={`p-3 bg-muted/30 rounded-lg ${isTablet ? 'mt-6' : 'mt-4'}`}>
                 <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center">
-                    <User className="w-4 h-4 text-primary-foreground" />
+                  <div className={`bg-primary rounded-full flex items-center justify-center ${
+                    isTablet ? 'w-10 h-10' : 'w-8 h-8'
+                  }`}>
+                    <User className={`text-primary-foreground ${
+                      isTablet ? 'w-5 h-5' : 'w-4 h-4'
+                    }`} />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate">{user.first_name} {user.last_name}</p>
-                    <p className="text-xs text-muted-foreground truncate">{user.email}</p>
+                    <p className={`font-medium truncate ${
+                      isTablet ? 'text-base' : 'text-sm'
+                    }`}>{user.first_name} {user.last_name}</p>
+                    <p className={`text-muted-foreground truncate ${
+                      isTablet ? 'text-sm' : 'text-xs'
+                    }`}>{user.email}</p>
                   </div>
-                  <Badge variant="outline" className="text-xs">
+                  <Badge variant="outline" className={isTablet ? "text-sm" : "text-xs"}>
                     {user.role.toUpperCase()}
                   </Badge>
                 </div>
@@ -202,17 +260,21 @@ export function AdminLayout({ user }: AdminLayoutProps) {
             <Button
               variant="ghost"
               onClick={handleLogout}
-              className={`w-full justify-start mt-2 text-destructive hover:text-destructive hover:bg-destructive/10 ${sidebarCollapsed ? 'px-2' : 'px-3'}`}
-              title={sidebarCollapsed ? 'Logout' : undefined}
+              className={`w-full justify-start mt-3 text-destructive hover:text-destructive hover:bg-destructive/10 ${
+                sidebarCollapsed && !isMobile && !isTablet ? 'px-2' : 'px-4'
+              } ${
+                isTablet ? 'h-12 text-base' : 'h-10 text-sm'
+              }`}
+              title={sidebarCollapsed && !isMobile && !isTablet ? 'Logout' : undefined}
             >
-              <LogOut className="w-5 h-5" />
-              {!sidebarCollapsed && (
-                <span className="ml-3">Logout</span>
+              <LogOut className={isTablet ? "w-6 h-6" : "w-5 h-5"} />
+              {(!sidebarCollapsed || isMobile || isTablet) && (
+                <span className={isTablet ? "ml-4" : "ml-3"}>Logout</span>
               )}
             </Button>
             
             {/* Collapsed user avatar */}
-            {sidebarCollapsed && (
+            {sidebarCollapsed && !isMobile && !isTablet && (
               <div className="flex justify-center mt-2">
                 <div 
                   className="w-6 h-6 bg-primary rounded-full flex items-center justify-center cursor-pointer"
@@ -226,7 +288,9 @@ export function AdminLayout({ user }: AdminLayoutProps) {
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 overflow-auto">
+      <div className={`flex-1 overflow-auto ${
+        (isMobile || isTablet) ? 'w-full' : ''
+      }`}>
         {renderCurrentSection()}
       </div>
     </div>

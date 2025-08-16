@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import apiClient from '@/api/client'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -10,10 +10,16 @@ import {
   Minus, 
   ShoppingCart, 
   Users, 
+  User,
   Check,
   Clock,
   Table as TableIcon,
-  Search
+  Search,
+  X,
+  Settings,
+  Package,
+  Tag,
+  Loader2
 } from 'lucide-react'
 import type { Product, Category, DiningTable, Order } from '@/types'
 
