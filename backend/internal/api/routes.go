@@ -52,9 +52,9 @@ func SetupRoutes(router *gin.RouterGroup, db *sql.DB, authMiddleware gin.Handler
 		protected.PATCH("/orders/:id/status", orderHandler.UpdateOrderStatus)
 
 		// Payment routes
-		protected.POST("/orders/:order_id/payments", paymentHandler.ProcessPayment)
-		protected.GET("/orders/:order_id/payments", paymentHandler.GetPayments)
-		protected.GET("/orders/:order_id/payment-summary", paymentHandler.GetPaymentSummary)
+		protected.POST("/orders/:id/payments", paymentHandler.ProcessPayment)
+		protected.GET("/orders/:id/payments", paymentHandler.GetPayments)
+		protected.GET("/orders/:id/payment-summary", paymentHandler.GetPaymentSummary)
 	}
 
 	// Admin routes (admin/manager only)

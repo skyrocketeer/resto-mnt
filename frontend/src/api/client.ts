@@ -188,7 +188,8 @@ class APIClient {
     });
   }
 
-  async updateOrderStatus(id: string, statusUpdate: UpdateOrderStatusRequest): Promise<APIResponse<Order>> {
+  async updateOrderStatus(id: string, status: string, notes?: string): Promise<APIResponse<Order>> {
+    const statusUpdate: UpdateOrderStatusRequest = { status, notes };
     return this.request({
       method: 'PATCH',
       url: `/orders/${id}/status`,
@@ -243,11 +244,11 @@ class APIClient {
   }
 
   // Kitchen endpoints
-  async getKitchenOrders(status: string = 'all'): Promise<APIResponse<KitchenOrder[]>> {
+  async getKitchenOrders(status?: string): Promise<APIResponse<Order[]>> {
     return this.request({
       method: 'GET',
       url: '/kitchen/orders',
-      params: { status },
+      params: status && status !== 'all' ? { status } : {},
     });
   }
 

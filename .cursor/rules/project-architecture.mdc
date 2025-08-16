@@ -15,9 +15,10 @@ This is a complete Point of Sale system built with:
 ## Project Structure
 
 ### Root Level
-- [docker-compose.yml](mdc:docker-compose.yml) - Main orchestration file for all services
+- [Makefile](mdc:Makefile) - Comprehensive development workflow automation
+- [docker-compose.yml](mdc:docker-compose.yml) - Production orchestration file
 - [docker-compose.dev.yml](mdc:docker-compose.dev.yml) - Development environment with hot reloading
-- [start.sh](mdc:start.sh) - Convenience script to start the entire system
+- [start.sh](mdc:start.sh) - Legacy convenience script (use Makefile instead)
 
 ### Backend Structure (`backend/`)
 - [main.go](mdc:backend/main.go) - Application entry point with server setup
@@ -44,9 +45,26 @@ This is a complete Point of Sale system built with:
 - [init/01_schema.sql](mdc:database/init/01_schema.sql) - Database schema with all tables
 - [init/02_seed_data.sql](mdc:database/init/02_seed_data.sql) - Sample data for development
 
+### Scripts & Automation (`scripts/`)
+- [create-admin.sh](mdc:scripts/create-admin.sh) - Interactive super admin creation
+- [backup.sh](mdc:scripts/backup.sh) - Comprehensive system backup
+- [restore.sh](mdc:scripts/restore.sh) - Interactive backup restoration
+- [remove-data.sh](mdc:scripts/remove-data.sh) - Safe data removal with confirmations
+- [db-reset.sh](mdc:scripts/db-reset.sh) - Database reset with fresh schema
+
 ### Documentation (`docs/`)
 - [PRD.md](mdc:docs/PRD.md) - Product Requirements Document
 - [TODO.md](mdc:docs/TODO.md) - Project tasks and roadmap
+
+### Cursor Rules (`/.cursor/rules/`)
+- [project-architecture.mdc](mdc:.cursor/rules/project-architecture.mdc) - Overall project structure (always applied)
+- [backend-golang.mdc](mdc:.cursor/rules/backend-golang.mdc) - Golang development patterns
+- [frontend-react.mdc](mdc:.cursor/rules/frontend-react.mdc) - React + TypeScript patterns
+- [database-patterns.mdc](mdc:.cursor/rules/database-patterns.mdc) - PostgreSQL patterns
+- [api-patterns.mdc](mdc:.cursor/rules/api-patterns.mdc) - RESTful API conventions
+- [docker-deployment.mdc](mdc:.cursor/rules/docker-deployment.mdc) - Docker & deployment
+- [security-guidelines.mdc](mdc:.cursor/rules/security-guidelines.mdc) - Security best practices
+- [makefile-scripting.mdc](mdc:.cursor/rules/makefile-scripting.mdc) - Makefile & shell scripting
 
 ## Core Principles
 
@@ -73,7 +91,10 @@ This is a complete Point of Sale system built with:
 - Efficient database queries with minimal N+1 problems
 
 ### 5. Developer Experience
-- Hot reloading in development for both frontend and backend
-- Comprehensive type definitions
-- Clear error handling and logging
-- Docker for consistent development environments
+- **Makefile Workflow** - Comprehensive development automation with `make` commands
+- **Interactive Scripts** - Safe database operations with confirmation prompts
+- **Hot Reloading** - Development environment with live code updates
+- **Comprehensive Backups** - Automated backup and restore system
+- **Clear Error Handling** - Colored output with detailed error messages
+- **Docker Integration** - Consistent development environments
+- **Type Safety** - Comprehensive TypeScript definitions throughout

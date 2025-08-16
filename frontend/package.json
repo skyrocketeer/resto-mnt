@@ -30,7 +30,6 @@
     "@radix-ui/react-toast": "^1.2.1",
     "@radix-ui/react-tabs": "^1.1.0",
     "@radix-ui/react-alert-dialog": "^1.1.1",
-    "@radix-ui/react-badge": "^1.1.0",
     "@radix-ui/react-scroll-area": "^1.1.0",
     "react-hook-form": "^7.53.0",
     "@hookform/resolvers": "^3.9.0",
@@ -39,6 +38,8 @@
     "recharts": "^2.12.7"
   },
   "devDependencies": {
+    "@tanstack/router-plugin": "^1.57.15",
+    "@tanstack/router-devtools": "^1.57.15",
     "@types/react": "^18.3.11",
     "@types/react-dom": "^18.3.0",
     "@typescript-eslint/eslint-plugin": "^8.8.0",

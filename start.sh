@@ -44,7 +44,7 @@ echo "   Database: localhost:5432"
 echo ""
 echo "🔑 Default login credentials:"
 echo "   Username: admin"
-echo "   Password: password123"
+echo "   Password: admin123"
 echo ""
 echo "Press Ctrl+C to stop the system"
 

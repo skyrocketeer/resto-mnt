@@ -6,8 +6,8 @@ import path from 'path'
 
 export default defineConfig({
   plugins: [
-    TanStackRouterVite(),
     react(),
+    TanStackRouterVite(),
     tsconfigPaths()
   ],
   resolve: {

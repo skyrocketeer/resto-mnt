@@ -22,7 +22,7 @@ func NewPaymentHandler(db *sql.DB) *PaymentHandler {
 
 // ProcessPayment processes a payment for an order
 func (h *PaymentHandler) ProcessPayment(c *gin.Context) {
-	orderID, err := uuid.Parse(c.Param("order_id"))
+	orderID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, models.APIResponse{
 			Success: false,
@@ -257,7 +257,7 @@ func (h *PaymentHandler) ProcessPayment(c *gin.Context) {
 
 // GetPayments retrieves payments for an order
 func (h *PaymentHandler) GetPayments(c *gin.Context) {
-	orderID, err := uuid.Parse(c.Param("order_id"))
+	orderID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, models.APIResponse{
 			Success: false,
@@ -352,7 +352,7 @@ func (h *PaymentHandler) GetPayments(c *gin.Context) {
 
 // GetPaymentSummary retrieves payment summary for an order
 func (h *PaymentHandler) GetPaymentSummary(c *gin.Context) {
-	orderID, err := uuid.Parse(c.Param("order_id"))
+	orderID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, models.APIResponse{
 			Success: false,

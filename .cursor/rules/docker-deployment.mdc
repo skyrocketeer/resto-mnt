@@ -221,31 +221,38 @@ docker exec -i pos-postgres psql -U postgres pos_system < backup.sql
 ```
 
 ## Development Workflow
-
-### Quick Start Script
-Use the convenience script [start.sh](mdc:start.sh) for easy development:
+Use the comprehensive [Makefile](mdc:Makefile) for all operations:
 ```bash
-chmod +x start.sh
-./start.sh
+# Essential commands
+make dev          # Start development environment
+make up           # Start containers in background  
+make down         # Stop all containers
+make status       # Check service status
 ```
 
-### Common Commands
+### Database Operations
 ```bash
-# Start all services
+# Interactive database management
+make create-admin # Create super admin user
+make backup       # Backup database and files
+make restore      # Restore from backup
+make db-shell     # Access PostgreSQL shell
+make db-reset     # Reset with fresh data
+```
+
+### Legacy Commands (use Makefile instead)
+```bash
+# Start all services (legacy)
 docker-compose up -d
 
-# View logs
+# View logs (use: make logs)
 docker-compose logs -f backend
-docker-compose logs -f frontend
 
-# Stop services
+# Stop services (use: make down)
 docker-compose down
 
-# Rebuild containers
+# Rebuild containers (use: make rebuild)
 docker-compose up --build
-
-# Access database
-docker exec -it pos-postgres psql -U postgres pos_system
 ```
 
 ## Production Deployment
