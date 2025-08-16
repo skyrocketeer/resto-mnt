@@ -247,8 +247,8 @@ pos-full/
 ### **Installation**
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/pos-full.git
-cd pos-full
+git clone https://github.com/madebyaris/poinf-of-sales.git
+cd poinf-of-sales
 
 # Start everything with one command
 make dev
