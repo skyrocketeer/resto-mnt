@@ -14,7 +14,7 @@ type User struct {
 	PasswordHash string    `json:"-"` // Don't expose password hash in JSON
 	FirstName    string    `json:"first_name"`
 	LastName     string    `json:"last_name"`
-	Role         string    `json:"role"` // admin, manager, cashier, kitchen
+	Role         string    `json:"role"` // admin, manager, server, counter, kitchen
 	IsActive     bool      `json:"is_active"`
 	CreatedAt    time.Time `json:"created_at"`
 	UpdatedAt    time.Time `json:"updated_at"`
@@ -87,17 +87,17 @@ type Order struct {
 
 // OrderItem represents an item within an order
 type OrderItem struct {
-	ID                   uuid.UUID `json:"id"`
-	OrderID              uuid.UUID `json:"order_id"`
-	ProductID            uuid.UUID `json:"product_id"`
-	Quantity             int       `json:"quantity"`
-	UnitPrice            float64   `json:"unit_price"`
-	TotalPrice           float64   `json:"total_price"`
-	SpecialInstructions  *string   `json:"special_instructions"`
-	Status               string    `json:"status"` // pending, preparing, ready, served
-	CreatedAt            time.Time `json:"created_at"`
-	UpdatedAt            time.Time `json:"updated_at"`
-	Product              *Product  `json:"product,omitempty"`
+	ID                  uuid.UUID `json:"id"`
+	OrderID             uuid.UUID `json:"order_id"`
+	ProductID           uuid.UUID `json:"product_id"`
+	Quantity            int       `json:"quantity"`
+	UnitPrice           float64   `json:"unit_price"`
+	TotalPrice          float64   `json:"total_price"`
+	SpecialInstructions *string   `json:"special_instructions"`
+	Status              string    `json:"status"` // pending, preparing, ready, served
+	CreatedAt           time.Time `json:"created_at"`
+	UpdatedAt           time.Time `json:"updated_at"`
+	Product             *Product  `json:"product,omitempty"`
 }
 
 // Payment represents a payment transaction
@@ -144,11 +144,11 @@ type OrderStatusHistory struct {
 
 // CreateOrderRequest represents the request to create a new order
 type CreateOrderRequest struct {
-	TableID      *uuid.UUID         `json:"table_id"`
-	CustomerName *string            `json:"customer_name"`
-	OrderType    string             `json:"order_type"`
-	Items        []CreateOrderItem  `json:"items"`
-	Notes        *string            `json:"notes"`
+	TableID      *uuid.UUID        `json:"table_id"`
+	CustomerName *string           `json:"customer_name"`
+	OrderType    string            `json:"order_type"`
+	Items        []CreateOrderItem `json:"items"`
+	Notes        *string           `json:"notes"`
 }
 
 // CreateOrderItem represents an item in the order creation request
@@ -206,4 +206,3 @@ type MetaData struct {
 	Total       int `json:"total"`
 	TotalPages  int `json:"total_pages"`
 }
-

@@ -36,6 +36,7 @@ export function POSHeader({
   onCustomerNameChange
 }: POSHeaderProps) {
   const [showUserMenu, setShowUserMenu] = useState(false)
+  const [showPaymentHistory, setShowPaymentHistory] = useState(false)
 
   const handleLogout = async () => {
     try {
@@ -149,6 +150,20 @@ export function POSHeader({
 
           {/* User Actions */}
           <div className="flex items-center gap-2">
+            {/* Payment History Access */}
+            {(user.role === 'admin' || user.role === 'cashier') && (
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={() => setShowPaymentHistory(true)}
+                className="flex items-center gap-2 text-green-600 hover:text-green-700 hover:bg-green-50"
+                title="Payment History"
+              >
+                <History className="w-4 h-4" />
+                <span className="text-sm font-medium">Payments</span>
+              </Button>
+            )}
+
             {/* Kitchen Display Access */}
             {(user.role === 'kitchen' || user.role === 'admin' || user.role === 'manager') && (
               <Button 
@@ -178,6 +193,22 @@ export function POSHeader({
           </div>
         </div>
       </div>
+
+      {/* Payment History Modal - TODO: Re-enable when needed */}
+      {showPaymentHistory && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-lg">
+            <h2 className="text-lg font-semibold mb-4">Payment History</h2>
+            <p className="text-gray-600 mb-4">Payment history feature is available in the next update!</p>
+            <button 
+              onClick={() => setShowPaymentHistory(false)}
+              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
     </header>
   )
 }

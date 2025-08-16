@@ -1,5 +1,4 @@
 import { useState } from 'react'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
@@ -15,8 +14,8 @@ import {
   MapPin
 } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
-import apiClient from '@/api/client'
-import type { CartItem, DiningTable, CreateOrderRequest, CreateOrderItem } from '@/types'
+import { PaymentConfirmationModal } from './PaymentConfirmationModal'
+import type { CartItem, DiningTable } from '@/types'
 
 interface OrderCartProps {
   items: CartItem[]
@@ -44,30 +43,9 @@ export function OrderCart({
   onClearCart
 }: OrderCartProps) {
   const [notes, setNotes] = useState('')
-  const [isProcessing, setIsProcessing] = useState(false)
-  const queryClient = useQueryClient()
+  const [showPaymentModal, setShowPaymentModal] = useState(false)
 
-  const createOrderMutation = useMutation({
-    mutationFn: async (orderData: CreateOrderRequest) => {
-      const response = await apiClient.createOrder(orderData)
-      return response
-    },
-    onSuccess: () => {
-      // Clear cart and refresh data
-      onClearCart()
-      setNotes('')
-      queryClient.invalidateQueries({ queryKey: ['orders'] })
-      queryClient.invalidateQueries({ queryKey: ['tables'] })
-      
-      // Show success message (you might want to use a toast library)
-      alert('Order created successfully!')
-    },
-    onError: (error: any) => {
-      alert(error.message || 'Failed to create order')
-    }
-  })
-
-  const handleCreateOrder = async () => {
+  const handleProceedToPayment = () => {
     if (items.length === 0) {
       alert('Please add items to the cart')
       return
@@ -83,24 +61,17 @@ export function OrderCart({
       return
     }
 
-    const orderItems: CreateOrderItem[] = items.map(item => ({
-      product_id: item.product.id,
-      quantity: item.quantity,
-      special_instructions: undefined
-    }))
-
-    const orderData: CreateOrderRequest = {
-      table_id: selectedTable?.id,
-      customer_name: orderType !== 'dine_in' ? customerName.trim() : undefined,
-      order_type: orderType,
-      items: orderItems,
-      notes: notes.trim() || undefined
-    }
-
-    createOrderMutation.mutate(orderData)
+    setShowPaymentModal(true)
   }
 
-  const canCheckout = items.length > 0 && 
+  const handlePaymentSuccess = () => {
+    // Clear cart and notes after successful payment
+    onClearCart()
+    setNotes('')
+    setShowPaymentModal(false)
+  }
+
+  const canProceedToPayment = items.length > 0 && 
     (orderType !== 'dine_in' || selectedTable) && 
     (orderType === 'dine_in' || customerName.trim())
 
@@ -260,27 +231,18 @@ export function OrderCart({
             {items.reduce((sum, item) => sum + item.quantity, 0)} items in cart
           </p>
 
-          {/* Checkout Button */}
+          {/* Payment Button */}
           <Button
-            onClick={handleCreateOrder}
-            disabled={!canCheckout || createOrderMutation.isPending}
+            onClick={handleProceedToPayment}
+            disabled={!canProceedToPayment}
             className="w-full"
             size="lg"
           >
-            {createOrderMutation.isPending ? (
-              <>
-                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
-                Creating Order...
-              </>
-            ) : (
-              <>
-                <Receipt className="w-4 h-4 mr-2" />
-                Create Order
-              </>
-            )}
+            <CreditCard className="w-4 h-4 mr-2" />
+            Proceed to Payment
           </Button>
 
-          {!canCheckout && items.length > 0 && (
+          {!canProceedToPayment && items.length > 0 && (
             <p className="text-xs text-red-600 mt-2 text-center">
               {orderType === 'dine_in' && !selectedTable && 'Please select a table'}
               {orderType !== 'dine_in' && !customerName.trim() && `Please enter customer ${orderType === 'delivery' ? 'address' : 'name'}`}
@@ -288,6 +250,21 @@ export function OrderCart({
           )}
         </div>
       )}
+
+      {/* Payment Confirmation Modal */}
+      <PaymentConfirmationModal
+        isOpen={showPaymentModal}
+        onClose={() => setShowPaymentModal(false)}
+        items={items}
+        subtotal={subtotal}
+        taxAmount={taxAmount}
+        totalAmount={totalAmount}
+        selectedTable={selectedTable}
+        orderType={orderType}
+        customerName={customerName}
+        orderNotes={notes}
+        onSuccess={handlePaymentSuccess}
+      />
     </div>
   )
 }

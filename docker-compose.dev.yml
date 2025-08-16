@@ -48,7 +48,7 @@ services:
       target: development
     container_name: pos-frontend-dev
     environment:
-      - VITE_API_URL=http://localhost:8080
+      - VITE_API_URL=http://localhost:8080/api/v1
     ports:
       - "3000:3000"
       - "5173:5173"

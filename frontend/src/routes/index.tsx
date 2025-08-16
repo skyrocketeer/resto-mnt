@@ -2,7 +2,7 @@ import { createFileRoute, Navigate } from '@tanstack/react-router'
 import { useQuery } from '@tanstack/react-query'
 import { useState, useEffect } from 'react'
 import apiClient from '@/api/client'
-import { POSLayout } from '@/components/pos/POSLayout'
+import { RoleBasedLayout } from '@/components/RoleBasedLayout'
 import type { User } from '@/types'
 
 export const Route = createFileRoute('/')({
@@ -54,7 +54,7 @@ function HomePage() {
 
   // Show loading while we check localStorage
   if (isLoading) {
-    console.log('Still loading user data...')
+    console.log('Still loading user data from localStorage...')
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
@@ -65,40 +65,13 @@ function HomePage() {
     )
   }
 
-  // Check authentication
+  // Check authentication - ONLY after localStorage is loaded
   console.log('Checking auth - isAuthenticated:', apiClient.isAuthenticated(), 'user:', user)
   if (!apiClient.isAuthenticated() || !user) {
     console.log('Not authenticated, redirecting to login')
     return <Navigate to="/login" />
   }
 
-  if (isServerVerifying) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Loading POS System...</p>
-        </div>
-      </div>
-    )
-  }
-
-  if (error) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-destructive mb-4">Authentication error</p>
-          <button 
-            onClick={() => window.location.href = '/login'}
-            className="px-4 py-2 bg-blue-600 text-white rounded-md"
-          >
-            Return to Login
-          </button>
-        </div>
-      </div>
-    )
-  }
-
-  return <POSLayout user={user} />
+  return <RoleBasedLayout user={user} />
 }
 

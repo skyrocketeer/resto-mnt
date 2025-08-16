@@ -29,8 +29,12 @@ class APIClient {
   private client: AxiosInstance;
 
   constructor() {
+    const apiUrl = import.meta.env?.VITE_API_URL || 'http://localhost:8080/api/v1';
+    console.log('🔧 API Client baseURL:', apiUrl);
+    console.log('🔧 Environment VITE_API_URL:', import.meta.env?.VITE_API_URL);
+    
     this.client = axios.create({
-      baseURL: import.meta.env.VITE_API_URL || 'http://localhost:8080/api/v1',
+      baseURL: apiUrl,
       timeout: 30000,
       headers: {
         'Content-Type': 'application/json',
@@ -188,7 +192,7 @@ class APIClient {
     });
   }
 
-  async updateOrderStatus(id: string, status: string, notes?: string): Promise<APIResponse<Order>> {
+  async updateOrderStatus(id: string, status: OrderStatus, notes?: string): Promise<APIResponse<Order>> {
     const statusUpdate: UpdateOrderStatusRequest = { status, notes };
     return this.request({
       method: 'PATCH',
@@ -257,6 +261,63 @@ class APIClient {
       method: 'PATCH',
       url: `/kitchen/orders/${orderId}/items/${itemId}/status`,
       data: { status },
+    });
+  }
+
+  // Role-specific order creation
+  async createServerOrder(order: CreateOrderRequest): Promise<APIResponse<Order>> {
+    return this.request({
+      method: 'POST',
+      url: '/server/orders',
+      data: order,
+    });
+  }
+
+  async createCounterOrder(order: CreateOrderRequest): Promise<APIResponse<Order>> {
+    return this.request({
+      method: 'POST',
+      url: '/counter/orders',
+      data: order,
+    });
+  }
+
+  // Counter payment processing
+  async processCounterPayment(orderId: string, payment: ProcessPaymentRequest): Promise<APIResponse<Payment>> {
+    return this.request({
+      method: 'POST',
+      url: `/counter/orders/${orderId}/payments`,
+      data: payment,
+    });
+  }
+
+  // User management endpoints (Admin only)
+  async getUsers(): Promise<APIResponse<User[]>> {
+    return this.request({
+      method: 'GET',
+      url: '/admin/users',
+    });
+  }
+
+  async createUser(userData: any): Promise<APIResponse<User>> {
+    return this.request({
+      method: 'POST',
+      url: '/admin/users',
+      data: userData,
+    });
+  }
+
+  async updateUser(id: string, userData: any): Promise<APIResponse<User>> {
+    return this.request({
+      method: 'PATCH',
+      url: `/admin/users/${id}`,
+      data: userData,
+    });
+  }
+
+  async deleteUser(id: string): Promise<APIResponse> {
+    return this.request({
+      method: 'DELETE',
+      url: `/admin/users/${id}`,
     });
   }
 

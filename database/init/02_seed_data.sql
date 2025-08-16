@@ -4,8 +4,10 @@
 INSERT INTO users (username, email, password_hash, first_name, last_name, role) VALUES
 ('admin', 'admin@pos.com', '$2b$10$K6z8U9TnC.6LnFkLpz8tje5rUZnSu8E2y6Zr4cHvNb8dRFjY0xFIW', 'Admin', 'User', 'admin'),
 ('manager1', 'manager@pos.com', '$2b$10$K6z8U9TnC.6LnFkLpz8tje5rUZnSu8E2y6Zr4cHvNb8dRFjY0xFIW', 'John', 'Manager', 'manager'),
-('cashier1', 'cashier1@pos.com', '$2b$10$K6z8U9TnC.6LnFkLpz8tje5rUZnSu8E2y6Zr4cHvNb8dRFjY0xFIW', 'Sarah', 'Smith', 'cashier'),
-('cashier2', 'cashier2@pos.com', '$2b$10$K6z8U9TnC.6LnFkLpz8tje5rUZnSu8E2y6Zr4cHvNb8dRFjY0xFIW', 'Mike', 'Johnson', 'cashier'),
+('server1', 'server1@pos.com', '$2b$10$K6z8U9TnC.6LnFkLpz8tje5rUZnSu8E2y6Zr4cHvNb8dRFjY0xFIW', 'Sarah', 'Smith', 'server'),
+('server2', 'server2@pos.com', '$2b$10$K6z8U9TnC.6LnFkLpz8tje5rUZnSu8E2y6Zr4cHvNb8dRFjY0xFIW', 'Mike', 'Johnson', 'server'),
+('counter1', 'counter1@pos.com', '$2b$10$K6z8U9TnC.6LnFkLpz8tje5rUZnSu8E2y6Zr4cHvNb8dRFjY0xFIW', 'Lisa', 'Davis', 'counter'),
+('counter2', 'counter2@pos.com', '$2b$10$K6z8U9TnC.6LnFkLpz8tje5rUZnSu8E2y6Zr4cHvNb8dRFjY0xFIW', 'Tom', 'Wilson', 'counter'),
 ('kitchen1', 'kitchen@pos.com', '$2b$10$K6z8U9TnC.6LnFkLpz8tje5rUZnSu8E2y6Zr4cHvNb8dRFjY0xFIW', 'Chef', 'Williams', 'kitchen');
 
 -- Insert categories
@@ -85,9 +87,9 @@ FROM products;
 
 -- Create some sample orders for testing
 INSERT INTO orders (order_number, table_id, user_id, order_type, status, subtotal, tax_amount, total_amount) VALUES
-('ORD001', (SELECT id FROM dining_tables WHERE table_number = 'T02'), (SELECT id FROM users WHERE username = 'cashier1'), 'dine_in', 'pending', 25.98, 2.60, 28.58),
-('ORD002', (SELECT id FROM dining_tables WHERE table_number = 'T05'), (SELECT id FROM users WHERE username = 'cashier1'), 'dine_in', 'preparing', 18.99, 1.90, 20.89),
-('ORD003', (SELECT id FROM dining_tables WHERE table_number = 'TAKEOUT'), (SELECT id FROM users WHERE username = 'cashier2'), 'takeout', 'ready', 14.99, 1.50, 16.49);
+('ORD001', (SELECT id FROM dining_tables WHERE table_number = 'T02'), (SELECT id FROM users WHERE username = 'server1'), 'dine_in', 'pending', 25.98, 2.60, 28.58),
+('ORD002', (SELECT id FROM dining_tables WHERE table_number = 'T05'), (SELECT id FROM users WHERE username = 'server2'), 'dine_in', 'preparing', 18.99, 1.90, 20.89),
+('ORD003', (SELECT id FROM dining_tables WHERE table_number = 'TAKEOUT'), (SELECT id FROM users WHERE username = 'counter1'), 'takeout', 'ready', 14.99, 1.50, 16.49);
 
 -- Insert sample order items
 INSERT INTO order_items (order_id, product_id, quantity, unit_price, total_price) VALUES
@@ -104,7 +106,7 @@ INSERT INTO order_items (order_id, product_id, quantity, unit_price, total_price
 
 -- Insert sample payment
 INSERT INTO payments (order_id, payment_method, amount, status, processed_by, processed_at) VALUES
-((SELECT id FROM orders WHERE order_number = 'ORD003'), 'cash', 16.49, 'completed', (SELECT id FROM users WHERE username = 'cashier2'), CURRENT_TIMESTAMP);
+((SELECT id FROM orders WHERE order_number = 'ORD003'), 'cash', 16.49, 'completed', (SELECT id FROM users WHERE username = 'counter1'), CURRENT_TIMESTAMP);
 
 -- Update order 3 status to completed since payment is done
 UPDATE orders SET status = 'completed', completed_at = CURRENT_TIMESTAMP WHERE order_number = 'ORD003';
