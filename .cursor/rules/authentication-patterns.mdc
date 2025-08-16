@@ -1,0 +1,169 @@
+---
+description: Authentication flow patterns and debugging for React applications
+---
+
+# Authentication Flow Patterns and Debugging
+
+## 🔐 Common Authentication Issues
+
+### 1. Infinite Redirect Loops
+**Problem:** Component redirects to login, which redirects back, creating a loop.
+
+**Root Causes:**
+- Token exists but user object is null
+- Hooks called after conditional returns
+- Server verification failing silently
+- localStorage not loaded before auth check
+
+**Solution Pattern:**
+```tsx
+function ProtectedRoute() {
+  // 1. ALL HOOKS AT TOP LEVEL
+  const [user, setUser] = useState<User | null>(null)
+  const [isLoadingAuth, setIsLoadingAuth] = useState(true)
+  
+  const { isLoading: isVerifying, error } = useQuery({
+    queryKey: ['currentUser'],
+    queryFn: () => apiClient.getCurrentUser(),
+    enabled: false, // Control when to verify
+  })
+  
+  // 2. LOAD AUTH STATE FIRST
+  useEffect(() => {
+    const loadAuthState = () => {
+      const token = localStorage.getItem('pos_token')
+      const storedUser = localStorage.getItem('pos_user')
+      
+      console.log('Loading auth - token:', token ? 'exists' : 'missing')
+      console.log('Loading auth - user:', storedUser ? 'exists' : 'missing')
+      
+      if (storedUser && token) {
+        try {
+          setUser(JSON.parse(storedUser))
+        } catch (error) {
+          console.error('Invalid user data, clearing auth')
+          localStorage.removeItem('pos_user')
+          localStorage.removeItem('pos_token')
+        }
+      }
+      setIsLoadingAuth(false)
+    }
+    
+    loadAuthState()
+  }, [])
+  
+  // 3. SHOW LOADING UNTIL AUTH STATE DETERMINED
+  if (isLoadingAuth) {
+    return <LoadingSpinner message="Loading authentication..." />
+  }
+  
+  // 4. CHECK AUTH ONLY AFTER LOADING COMPLETE
+  if (!apiClient.isAuthenticated() || !user) {
+    console.log('Not authenticated, redirecting to login')
+    return <Navigate to="/login" />
+  }
+  
+  // 5. RENDER PROTECTED CONTENT
+  return <ProtectedContent user={user} />
+}
+```
+
+### 2. Login Success Handler Pattern
+```tsx
+const loginMutation = useMutation({
+  mutationFn: async (credentials: LoginRequest) => {
+    const response = await apiClient.login(credentials)
+    return response
+  },
+  onSuccess: (data) => {
+    console.log('Login success:', data)
+    
+    if (data.success && data.data) {
+      // 1. Set token first
+      apiClient.setAuthToken(data.data.token)
+      
+      // 2. Store user data
+      localStorage.setItem('pos_user', JSON.stringify(data.data.user))
+      
+      // 3. Brief delay to ensure storage completes
+      setTimeout(() => {
+        router.navigate({ to: '/' }) // Use router, not window.location
+      }, 100)
+    }
+  },
+  onError: (error) => {
+    console.error('Login failed:', error)
+    setError(error.message || 'Login failed')
+  },
+})
+```
+
+### 3. API Client Authentication Methods
+```typescript
+class APIClient {
+  setAuthToken(token: string): void {
+    localStorage.setItem('pos_token', token)
+    // Update axios header immediately
+    this.client.defaults.headers.common['Authorization'] = `Bearer ${token}`
+  }
+
+  clearAuth(): void {
+    localStorage.removeItem('pos_token')
+    localStorage.removeItem('pos_user')
+    delete this.client.defaults.headers.common['Authorization']
+  }
+
+  isAuthenticated(): boolean {
+    const token = localStorage.getItem('pos_token')
+    return !!token
+  }
+}
+```
+
+### 4. Debugging Authentication Issues
+Add these console logs to trace auth flow:
+
+```tsx
+// In protected routes
+console.log('Auth check - token exists:', !!localStorage.getItem('pos_token'))
+console.log('Auth check - user exists:', !!localStorage.getItem('pos_user'))
+console.log('Auth check - apiClient.isAuthenticated():', apiClient.isAuthenticated())
+
+// In login success
+console.log('Login success - storing token and user')
+console.log('Token stored:', !!localStorage.getItem('pos_token'))
+console.log('User stored:', !!localStorage.getItem('pos_user'))
+```
+
+### 5. Auth Debugging Checklist
+When auth is not working:
+- [ ] Check browser localStorage for 'pos_token' and 'pos_user'
+- [ ] Verify token format (should be JWT)
+- [ ] Test API endpoints directly with curl
+- [ ] Check for hooks order violations
+- [ ] Verify CORS allows auth headers
+- [ ] Clear browser storage and retry
+- [ ] Check network tab for failed auth requests
+
+### 6. Server-Side Auth Verification
+```typescript
+// Optional: Verify token with server
+const verifyAuthQuery = useQuery({
+  queryKey: ['verifyAuth'],
+  queryFn: () => apiClient.getCurrentUser(),
+  enabled: !!user && !!apiClient.isAuthenticated(),
+  retry: 1,
+  onError: () => {
+    console.log('Server auth verification failed, clearing local auth')
+    apiClient.clearAuth()
+  }
+})
+```
+
+## Best Practices
+1. **Always check localStorage loading state** before auth decisions
+2. **Use console.log extensively** during auth debugging
+3. **Store both token and user data** consistently
+4. **Handle JSON parsing errors** for localStorage data
+5. **Use router navigation** instead of window.location for SPA
+6. **Clear auth state completely** on logout/errors

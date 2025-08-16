@@ -14,7 +14,7 @@ function HomePage() {
   const [isLoading, setIsLoading] = useState(true)
 
   // ALL HOOKS MUST BE AT THE TOP LEVEL - before any conditional returns
-  const { isLoading: isVerifying, error } = useQuery({
+  const { isLoading: isServerVerifying, error } = useQuery({
     queryKey: ['currentUser'],
     queryFn: () => {
       console.log('Verifying user with API URL:', import.meta.env.VITE_API_URL)
@@ -72,7 +72,7 @@ function HomePage() {
     return <Navigate to="/login" />
   }
 
-  if (isVerifying) {
+  if (isServerVerifying) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">

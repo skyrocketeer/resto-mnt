@@ -1,0 +1,101 @@
+---
+description: CORS configuration and debugging guide for development environments
+---
+
+# CORS Configuration and Debugging Guide
+
+## 🚨 Common CORS Issues in Development
+
+### 1. Dynamic Port Management
+**Problem:** Vite/frontend servers often use different ports when the default is occupied.
+
+**Solution:** Configure backend CORS to allow multiple common ports:
+
+```go
+// ✅ CORRECT - Allow multiple development ports
+router.Use(cors.New(cors.Config{
+    AllowOrigins: []string{
+        "http://localhost:3000",
+        "http://localhost:3001", 
+        "http://localhost:3002",
+        "http://localhost:3003",
+        "http://localhost:5173", // Vite default
+    },
+    AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"},
+    AllowHeaders:     []string{"Origin", "Content-Type", "Authorization", "X-Requested-With"},
+    AllowCredentials: true,
+}))
+```
+
+### 2. CORS Testing Commands
+Use these commands to verify CORS configuration:
+
+```bash
+# Test preflight request
+curl -s -H "Origin: http://localhost:3001" \
+     -X OPTIONS http://localhost:8080/api/v1/auth/login -I
+
+# Expected response headers:
+# Access-Control-Allow-Origin: http://localhost:3001
+# Access-Control-Allow-Methods: GET,POST,PUT,DELETE,PATCH,OPTIONS
+# Access-Control-Allow-Credentials: true
+```
+
+### 3. Environment Variables for API URLs
+**Problem:** Frontend not using correct API base URL.
+
+**Solution:** Always set both root and frontend-specific `.env` files:
+
+```bash
+# ✅ Root .env file
+echo "VITE_API_URL=http://localhost:8080/api/v1" > .env
+
+# ✅ Frontend-specific .env file  
+echo "VITE_API_URL=http://localhost:8080/api/v1" > frontend/.env
+```
+
+### 4. CORS Debugging Checklist
+When encountering CORS errors:
+- [ ] Check current frontend port in terminal output
+- [ ] Verify backend CORS includes current port
+- [ ] Test CORS preflight with curl command
+- [ ] Restart backend after CORS changes
+- [ ] Clear browser cache/storage
+- [ ] Check API client base URL configuration
+
+### 5. API Client Configuration Pattern
+```typescript
+// ✅ CORRECT API client setup
+class APIClient {
+  private client: AxiosInstance;
+
+  constructor() {
+    this.client = axios.create({
+      baseURL: import.meta.env.VITE_API_URL || 'http://localhost:8080/api/v1',
+      timeout: 30000,
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+  }
+}
+```
+
+### 6. Quick Fix Commands
+```bash
+# Add new port to backend CORS (replace 3002 with actual port)
+sed -i 's/localhost:3001"/localhost:3001", "http:\/\/localhost:3002"/g' backend/main.go
+
+# Restart backend to apply CORS changes
+docker compose restart backend
+
+# Test new port is allowed
+curl -H "Origin: http://localhost:3002" -X OPTIONS http://localhost:8080/api/v1/auth/login -I
+```
+
+## Preventing CORS Issues
+1. **Always use a range of ports** in CORS configuration
+2. **Test CORS changes** with curl before frontend testing
+3. **Set environment variables** in both root and frontend directories
+4. **Document the API base URL** pattern in your project
+5. **Use consistent port numbering** across development team
