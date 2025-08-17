@@ -53,17 +53,32 @@ export function ServerInterface() {
   // Fetch categories
   const { data: categories = [] } = useQuery({
     queryKey: ['categories'],
-    queryFn: () => apiClient.getCategories().then(res => res.data)
+    queryFn: async () => {
+      try {
+        const response = await apiClient.getCategories()
+        return response.data || []
+      } catch (error) {
+        console.error('Failed to fetch categories:', error)
+        return []
+      }
+    }
   })
 
   // Fetch products
   const { data: products = [] } = useQuery({
     queryKey: ['products', selectedCategory],
-    queryFn: () => {
-      if (selectedCategory === 'all') {
-        return apiClient.getProducts().then(res => res.data)
-      } else {
-        return apiClient.getProductsByCategory(selectedCategory).then(res => res.data)
+    queryFn: async () => {
+      try {
+        let response
+        if (selectedCategory === 'all') {
+          response = await apiClient.getProducts()
+        } else {
+          response = await apiClient.getProductsByCategory(selectedCategory)
+        }
+        return response.data || []
+      } catch (error) {
+        console.error('Failed to fetch products:', error)
+        return []
       }
     }
   })
@@ -71,13 +86,29 @@ export function ServerInterface() {
   // Fetch available tables (not occupied)
   const { data: tables = [] } = useQuery({
     queryKey: ['tables'],
-    queryFn: () => apiClient.getTables().then(res => res.data)
+    queryFn: async () => {
+      try {
+        const response = await apiClient.getTables()
+        return response.data || []
+      } catch (error) {
+        console.error('Failed to fetch tables:', error)
+        return []
+      }
+    }
   })
 
   // Fetch active orders to show table status
   const { data: activeOrders = [] } = useQuery({
     queryKey: ['active-orders'],
-    queryFn: () => apiClient.getOrders({ status: 'pending,confirmed,preparing,ready' }).then(res => res.data)
+    queryFn: async () => {
+      try {
+        const response = await apiClient.getOrders({ status: 'pending,confirmed,preparing,ready' })
+        return response.data || []
+      } catch (error) {
+        console.error('Failed to fetch active orders:', error)
+        return []
+      }
+    }
   })
 
   // Create order mutation (server endpoint - dine-in only)
@@ -112,7 +143,9 @@ export function ServerInterface() {
 
   // Helper function to get table status
   const getTableStatus = (table: DiningTable) => {
-    const hasActiveOrder = activeOrders.some(order => order.table_id === table.id)
+    // Ensure activeOrders is always an array
+    const orders = Array.isArray(activeOrders) ? activeOrders : []
+    const hasActiveOrder = orders.some(order => order.table_id === table.id)
     
     if (table.is_occupied && hasActiveOrder) {
       return { status: 'occupied', label: 'Occupied', color: 'bg-red-100 text-red-800 border-red-200' }
@@ -129,11 +162,14 @@ export function ServerInterface() {
   const availableTables = tables.filter(table => !table.is_occupied)
   
   // All tables with status for restaurant view
-  const tablesWithStatus = tables.map(table => ({
-    ...table,
-    statusInfo: getTableStatus(table),
-    activeOrder: activeOrders.find(order => order.table_id === table.id)
-  }))
+  const tablesWithStatus = tables.map(table => {
+    const orders = Array.isArray(activeOrders) ? activeOrders : []
+    return {
+      ...table,
+      statusInfo: getTableStatus(table),
+      activeOrder: orders.find(order => order.table_id === table.id)
+    }
+  })
 
   const addToCart = (product: Product) => {
     const existingItem = cart.find(item => item.product.id === product.id)
@@ -208,7 +244,7 @@ export function ServerInterface() {
                 <Users className="w-4 h-4 mr-1" />
                 Dine-In Service
               </Badge>
-              {activeOrders.length > 0 && (
+              {Array.isArray(activeOrders) && activeOrders.length > 0 && (
                 <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200">
                   {activeOrders.length} Active Orders
                 </Badge>
