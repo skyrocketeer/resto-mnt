@@ -188,6 +188,7 @@ function LoginPage() {
                   {[
                     { username: 'admin', role: 'Admin', bg: 'bg-red-100 text-red-700', desc: 'Full access', password: 'admin123' },
                     { username: 'manager1', role: 'Manager', bg: 'bg-blue-100 text-blue-700', desc: 'Management access', password: 'password123' },
+                    { username: 'server1', role: 'Server', bg: 'bg-purple-100 text-purple-700', desc: 'Dine-in orders', password: 'admin123' },
                     { username: 'cashier1', role: 'Cashier', bg: 'bg-green-100 text-green-700', desc: 'Order & payment', password: 'password123' },
                     { username: 'kitchen1', role: 'Kitchen', bg: 'bg-yellow-100 text-yellow-700', desc: 'Kitchen orders', password: 'password123' },
                   ].map((account) => (

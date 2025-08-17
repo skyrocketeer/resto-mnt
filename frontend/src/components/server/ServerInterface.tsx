@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import apiClient from '@/api/client'
 import { toastHelpers } from '@/lib/toast-helpers'
@@ -16,13 +16,10 @@ import {
   Clock,
   Table as TableIcon,
   Search,
-  X,
   Settings,
-  Package,
-  Tag,
-  Loader2
+  Package
 } from 'lucide-react'
-import type { Product, Category, DiningTable, Order } from '@/types'
+import type { Product, DiningTable } from '@/types'
 
 interface CartItem {
   product: Product
@@ -31,6 +28,7 @@ interface CartItem {
 }
 
 interface CreateOrderRequest {
+  order_type: 'dine_in' | 'takeout' | 'delivery'
   table_id: string
   customer_name?: string
   items: Array<{
@@ -48,6 +46,7 @@ export function ServerInterface() {
   const [cart, setCart] = useState<CartItem[]>([])
   const [orderNotes, setOrderNotes] = useState('')
   const [searchTerm, setSearchTerm] = useState('')
+  const [showTableView, setShowTableView] = useState(false)
   
   const queryClient = useQueryClient()
 
@@ -75,19 +74,30 @@ export function ServerInterface() {
     queryFn: () => apiClient.getTables().then(res => res.data)
   })
 
+  // Fetch active orders to show table status
+  const { data: activeOrders = [] } = useQuery({
+    queryKey: ['active-orders'],
+    queryFn: () => apiClient.getOrders({ status: 'pending,confirmed,preparing,ready' }).then(res => res.data)
+  })
+
   // Create order mutation (server endpoint - dine-in only)
   const createOrderMutation = useMutation({
     mutationFn: (orderData: CreateOrderRequest) => 
       apiClient.createServerOrder(orderData),
     onSuccess: (data) => {
+      const orderNumber = data.data?.order_number
       // Reset form
       setCart([])
       setSelectedTable(null)
       setCustomerName('')
       setOrderNotes('')
+      
+      // Refresh data
       queryClient.invalidateQueries({ queryKey: ['orders'] })
+      queryClient.invalidateQueries({ queryKey: ['active-orders'] })
       queryClient.invalidateQueries({ queryKey: ['tables'] })
-      toastHelpers.orderCreated(data.data?.order_number)
+      
+      toastHelpers.orderCreated(orderNumber)
     },
     onError: (error: any) => {
       toastHelpers.apiError('Create order', error)
@@ -100,8 +110,30 @@ export function ServerInterface() {
     (product.description?.toLowerCase().includes(searchTerm.toLowerCase()) ?? false)
   )
 
-  // Available tables (not occupied)
+  // Helper function to get table status
+  const getTableStatus = (table: DiningTable) => {
+    const hasActiveOrder = activeOrders.some(order => order.table_id === table.id)
+    
+    if (table.is_occupied && hasActiveOrder) {
+      return { status: 'occupied', label: 'Occupied', color: 'bg-red-100 text-red-800 border-red-200' }
+    } else if (hasActiveOrder) {
+      return { status: 'pending', label: 'Order Pending', color: 'bg-yellow-100 text-yellow-800 border-yellow-200' }
+    } else if (table.is_occupied) {
+      return { status: 'seated', label: 'Seated', color: 'bg-blue-100 text-blue-800 border-blue-200' }
+    } else {
+      return { status: 'available', label: 'Available', color: 'bg-green-100 text-green-800 border-green-200' }
+    }
+  }
+
+  // Available tables (not occupied or ready for new orders)
   const availableTables = tables.filter(table => !table.is_occupied)
+  
+  // All tables with status for restaurant view
+  const tablesWithStatus = tables.map(table => ({
+    ...table,
+    statusInfo: getTableStatus(table),
+    activeOrder: activeOrders.find(order => order.table_id === table.id)
+  }))
 
   const addToCart = (product: Product) => {
     const existingItem = cart.find(item => item.product.id === product.id)
@@ -139,6 +171,7 @@ export function ServerInterface() {
     if (!selectedTable || cart.length === 0) return
 
     const orderData: CreateOrderRequest = {
+      order_type: 'dine_in',
       table_id: selectedTable.id,
       customer_name: customerName || undefined,
       items: cart.map(item => ({
@@ -167,13 +200,20 @@ export function ServerInterface() {
         <div className="p-4 border-b border-border bg-card">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h1 className="text-2xl font-bold">Server Interface</h1>
-              <p className="text-muted-foreground">Create dine-in orders for guests</p>
+              <h1 className="text-2xl font-bold">🍽️ Server Station</h1>
+              <p className="text-muted-foreground">Take orders for your tables • Provide excellent service</p>
             </div>
-            <Badge variant="secondary" className="bg-blue-100 text-blue-800">
-              <Users className="w-4 h-4 mr-1" />
-              Dine-In Only
-            </Badge>
+            <div className="flex items-center gap-2">
+              <Badge variant="secondary" className="bg-blue-100 text-blue-800">
+                <Users className="w-4 h-4 mr-1" />
+                Dine-In Service
+              </Badge>
+              {activeOrders.length > 0 && (
+                <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200">
+                  {activeOrders.length} Active Orders
+                </Badge>
+              )}
+            </div>
           </div>
 
           {/* Search */}
@@ -295,42 +335,162 @@ export function ServerInterface() {
       <div className="w-1/3 flex flex-col bg-card">
         {/* Table Selection */}
         <div className="p-4 border-b border-border">
-          <h3 className="font-semibold mb-3 flex items-center">
-            <TableIcon className="w-4 h-4 mr-2" />
-            Select Table
-          </h3>
-          <div className="grid grid-cols-3 gap-2">
-            {availableTables.slice(0, 9).map(table => (
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="font-semibold flex items-center">
+              <TableIcon className="w-4 h-4 mr-2" />
+              Select Table
+            </h3>
+            <div className="flex gap-1">
               <Button
-                key={table.id}
-                variant={selectedTable?.id === table.id ? 'default' : 'outline'}
+                variant={!showTableView ? 'default' : 'outline'}
                 size="sm"
-                onClick={() => setSelectedTable(table)}
-                className="h-12"
+                onClick={() => setShowTableView(false)}
               >
-                {table.table_number}
-                <span className="text-xs block">
-                  {table.seating_capacity} seats
-                </span>
+                List
               </Button>
-            ))}
+              <Button
+                variant={showTableView ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setShowTableView(true)}
+              >
+                Floor
+              </Button>
+            </div>
           </div>
-          {availableTables.length > 9 && (
-            <p className="text-xs text-muted-foreground mt-2">
-              +{availableTables.length - 9} more tables available
-            </p>
+
+          {!showTableView ? (
+            // Simple List View - Only Available Tables
+            <>
+              <div className="grid grid-cols-3 gap-2">
+                {availableTables.slice(0, 9).map(table => (
+                  <Button
+                    key={table.id}
+                    variant={selectedTable?.id === table.id ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setSelectedTable(table)}
+                    className="h-12"
+                  >
+                    {table.table_number}
+                    <span className="text-xs block">
+                      {table.seating_capacity} seats
+                    </span>
+                  </Button>
+                ))}
+              </div>
+              {availableTables.length > 9 && (
+                <p className="text-xs text-muted-foreground mt-2">
+                  +{availableTables.length - 9} more tables available
+                </p>
+              )}
+            </>
+          ) : (
+            // Restaurant Floor View - All Tables with Status
+            <div className="space-y-3">
+              {/* Status Legend */}
+              <div className="flex flex-wrap gap-2 text-xs">
+                <span className="px-2 py-1 rounded-full bg-green-100 text-green-800 border border-green-200">
+                  Available
+                </span>
+                <span className="px-2 py-1 rounded-full bg-blue-100 text-blue-800 border border-blue-200">
+                  Seated
+                </span>
+                <span className="px-2 py-1 rounded-full bg-yellow-100 text-yellow-800 border border-yellow-200">
+                  Order Pending
+                </span>
+                <span className="px-2 py-1 rounded-full bg-red-100 text-red-800 border border-red-200">
+                  Occupied
+                </span>
+              </div>
+
+              {/* Table Grid */}
+              <div className="grid grid-cols-4 gap-2 max-h-48 overflow-y-auto">
+                {tablesWithStatus.map(table => {
+                  const canSelect = table.statusInfo.status === 'available' || table.statusInfo.status === 'seated'
+                  return (
+                    <Button
+                      key={table.id}
+                      variant={selectedTable?.id === table.id ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => canSelect && setSelectedTable(table)}
+                      disabled={!canSelect}
+                      className={`h-14 flex flex-col p-2 relative ${
+                        canSelect ? 'cursor-pointer' : 'cursor-not-allowed opacity-60'
+                      }`}
+                    >
+                      <div className="font-semibold text-sm">T{table.table_number}</div>
+                      <div className="text-xs">{table.seating_capacity} seats</div>
+                      
+                      {/* Status indicator */}
+                      <div className={`absolute -top-1 -right-1 w-3 h-3 rounded-full ${
+                        table.statusInfo.status === 'available' ? 'bg-green-500' :
+                        table.statusInfo.status === 'seated' ? 'bg-blue-500' :
+                        table.statusInfo.status === 'pending' ? 'bg-yellow-500' :
+                        'bg-red-500'
+                      }`} />
+                      
+                      {/* Active order indicator */}
+                      {table.activeOrder && (
+                        <div className="absolute -bottom-1 left-1/2 transform -translate-x-1/2 text-xs bg-yellow-200 text-yellow-800 px-1 py-0.5 rounded text-[10px]">
+                          Order #{table.activeOrder.order_number?.slice(-4)}
+                        </div>
+                      )}
+                    </Button>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Selected Table Info */}
+          {selectedTable && (
+            <div className="mt-3 p-2 bg-blue-50 border border-blue-200 rounded-lg">
+              <div className="text-sm font-medium text-blue-900">
+                Selected: Table {selectedTable.table_number}
+              </div>
+              <div className="text-xs text-blue-700">
+                Capacity: {selectedTable.seating_capacity} guests
+                {selectedTable.location && ` • Location: ${selectedTable.location}`}
+              </div>
+            </div>
           )}
         </div>
 
         {/* Customer Info */}
         <div className="p-4 border-b border-border">
-          <h3 className="font-semibold mb-2">Customer Information</h3>
-          <Input
-            placeholder="Customer name (optional)"
-            value={customerName}
-            onChange={(e) => setCustomerName(e.target.value)}
-          />
+          <h3 className="font-semibold mb-2 flex items-center">
+            <User className="w-4 h-4 mr-2" />
+            Guest Information
+          </h3>
+          <div className="space-y-2">
+            <Input
+              placeholder="Guest name (optional)"
+              value={customerName}
+              onChange={(e) => setCustomerName(e.target.value)}
+            />
+            {selectedTable && (
+              <div className="text-xs text-muted-foreground">
+                💡 Tip: Greet guests warmly and confirm their table preference
+              </div>
+            )}
+          </div>
         </div>
+
+        {/* Quick Server Actions */}
+        {selectedTable && (
+          <div className="px-4 py-2 border-b border-border bg-blue-50/50">
+            <div className="text-xs text-blue-700 mb-2">Quick Actions for Table {selectedTable.table_number}</div>
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" className="text-xs">
+                <Settings className="w-3 h-3 mr-1" />
+                Table Settings
+              </Button>
+              <Button variant="outline" size="sm" className="text-xs">
+                <Package className="w-3 h-3 mr-1" />
+                Specials
+              </Button>
+            </div>
+          </div>
+        )}
 
         {/* Cart */}
         <div className="flex-1 overflow-y-auto">
@@ -343,8 +503,13 @@ export function ServerInterface() {
             {cart.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">
                 <ShoppingCart className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                <p>No items in order</p>
-                <p className="text-sm">Add items from the menu to get started</p>
+                <p>Ready to take an order</p>
+                <p className="text-sm">
+                  {selectedTable 
+                    ? `Taking order for Table ${selectedTable.table_number}`
+                    : 'Select a table and add items to get started'
+                  }
+                </p>
               </div>
             ) : (
               <div className="space-y-3">
@@ -402,11 +567,23 @@ export function ServerInterface() {
         {cart.length > 0 && (
           <div className="p-4 border-t border-border bg-card">
             <div className="space-y-3">
-              <div className="flex justify-between text-lg font-semibold">
-                <span>Total:</span>
-                <span>{formatCurrency(getTotalAmount())}</span>
+              {/* Order Summary */}
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                <div className="flex justify-between items-center mb-2">
+                  <span className="text-sm text-blue-700">
+                    {selectedTable ? `Table ${selectedTable.table_number}` : 'No table selected'}
+                  </span>
+                  <span className="text-sm text-blue-700">
+                    {cart.length} {cart.length === 1 ? 'item' : 'items'}
+                  </span>
+                </div>
+                <div className="flex justify-between text-lg font-semibold text-blue-900">
+                  <span>Order Total:</span>
+                  <span>{formatCurrency(getTotalAmount())}</span>
+                </div>
               </div>
-              
+
+              {/* Action Button */}
               <Button
                 className="w-full"
                 size="lg"
@@ -416,15 +593,25 @@ export function ServerInterface() {
                 {createOrderMutation.isPending ? (
                   <>
                     <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
-                    Creating Order...
+                    Sending to Kitchen...
+                  </>
+                ) : !selectedTable ? (
+                  <>
+                    <TableIcon className="w-4 h-4 mr-2" />
+                    Select a Table First
                   </>
                 ) : (
                   <>
                     <Check className="w-4 h-4 mr-2" />
-                    Create Dine-In Order
+                    Send Order to Kitchen
                   </>
                 )}
               </Button>
+
+              {/* Server Tips */}
+              <div className="text-xs text-center text-muted-foreground">
+                💡 Double-check the order with guests before submitting
+              </div>
             </div>
           </div>
         )}

@@ -14,28 +14,12 @@ import {
   BarChart3
 } from 'lucide-react'
 
-interface DashboardStats {
-  today_orders: number
-  today_revenue: number
-  active_orders: number
-  occupied_tables: number
-}
-
-interface IncomeReport {
-  summary: {
-    total_orders: number
-    gross_income: number
-    tax_collected: number
-    net_income: number
-  }
-  breakdown: Array<{
-    period: string
-    orders: number
-    gross: number
-    tax: number
-    net: number
-  }>
+interface IncomeBreakdownItem {
   period: string
+  orders: number
+  gross: number
+  tax: number
+  net: number
 }
 
 export function AdminDashboard() {
@@ -219,26 +203,28 @@ export function AdminDashboard() {
               </div>
 
               {/* Breakdown Table */}
-              <div className="border rounded-lg">
-                <div className="grid grid-cols-5 gap-4 p-4 bg-muted/50 font-medium text-sm">
-                  <div>Period</div>
-                  <div className="text-center">Orders</div>
-                  <div className="text-center">Gross</div>
-                  <div className="text-center">Tax</div>
-                  <div className="text-center">Net</div>
-                </div>
-                {income.breakdown.slice(0, 10).map((item, index) => (
-                  <div key={index} className="grid grid-cols-5 gap-4 p-4 border-t text-sm">
-                    <div className="font-medium">
-                      {new Date(item.period).toLocaleDateString()}
-                    </div>
-                    <div className="text-center">{item.orders}</div>
-                    <div className="text-center">{formatCurrency(item.gross)}</div>
-                    <div className="text-center">{formatCurrency(item.tax)}</div>
-                    <div className="text-center font-medium">{formatCurrency(item.net)}</div>
+              {income.breakdown && income.breakdown.length > 0 && (
+                <div className="border rounded-lg">
+                  <div className="grid grid-cols-5 gap-4 p-4 bg-muted/50 font-medium text-sm">
+                    <div>Period</div>
+                    <div className="text-center">Orders</div>
+                    <div className="text-center">Gross</div>
+                    <div className="text-center">Tax</div>
+                    <div className="text-center">Net</div>
                   </div>
-                ))}
-              </div>
+                  {income.breakdown.slice(0, 10).map((item: IncomeBreakdownItem, index: number) => (
+                    <div key={index} className="grid grid-cols-5 gap-4 p-4 border-t text-sm">
+                      <div className="font-medium">
+                        {new Date(item.period).toLocaleDateString()}
+                      </div>
+                      <div className="text-center">{item.orders}</div>
+                      <div className="text-center">{formatCurrency(item.gross)}</div>
+                      <div className="text-center">{formatCurrency(item.tax)}</div>
+                      <div className="text-center font-medium">{formatCurrency(item.net)}</div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           ) : (
             <div className="text-center py-8 text-muted-foreground">
