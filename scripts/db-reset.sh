@@ -85,11 +85,17 @@ docker exec $CONTAINER_NAME pg_dump -U postgres pos_system > $BACKUP_FILE 2>/dev
 
 echo -e "${YELLOW}🗑️  Dropping existing database and recreating...${NC}"
 
-# Drop and recreate database
-docker exec $CONTAINER_NAME psql -U postgres -c "
-DROP DATABASE IF EXISTS pos_system;
-CREATE DATABASE pos_system;
-"
+# Drop and recreate database (separate commands to avoid transaction issues)
+echo "  - Dropping existing database..."
+docker exec $CONTAINER_NAME psql -U postgres -c "DROP DATABASE IF EXISTS pos_system;"
+
+if [[ $? -ne 0 ]]; then
+    echo -e "${RED}❌ Failed to drop database!${NC}"
+    exit 1
+fi
+
+echo "  - Creating new database..."
+docker exec $CONTAINER_NAME psql -U postgres -c "CREATE DATABASE pos_system;"
 
 if [[ $? -ne 0 ]]; then
     echo -e "${RED}❌ Failed to recreate database!${NC}"
@@ -166,11 +172,13 @@ ORDER BY role, username;
 
 echo ""
 echo -e "${YELLOW}💡 Default login credentials:${NC}"
-echo "  Username: admin    | Password: password123 | Role: admin"
-echo "  Username: manager1 | Password: password123 | Role: manager"
-echo "  Username: cashier1 | Password: password123 | Role: cashier"
-echo "  Username: cashier2 | Password: password123 | Role: cashier"
-echo "  Username: kitchen1 | Password: password123 | Role: kitchen"
+echo "  Username: admin    | Password: admin123    | Role: admin"
+echo "  Username: manager1 | Password: admin123    | Role: manager"
+echo "  Username: server1  | Password: admin123    | Role: server"
+echo "  Username: server2  | Password: admin123    | Role: server"
+echo "  Username: counter1 | Password: admin123    | Role: counter"
+echo "  Username: counter2 | Password: admin123    | Role: counter"
+echo "  Username: kitchen1 | Password: admin123    | Role: kitchen"
 echo ""
 echo -e "${YELLOW}💾 Pre-reset backup saved to: $BACKUP_FILE${NC}"
 echo -e "${BLUE}🚀 The system is now ready for development!${NC}"

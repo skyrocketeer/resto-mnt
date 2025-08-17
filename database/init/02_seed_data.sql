@@ -2,13 +2,13 @@
 
 -- Insert default users
 INSERT INTO users (username, email, password_hash, first_name, last_name, role) VALUES
-('admin', 'admin@pos.com', '$2b$10$K6z8U9TnC.6LnFkLpz8tje5rUZnSu8E2y6Zr4cHvNb8dRFjY0xFIW', 'Admin', 'User', 'admin'),
-('manager1', 'manager@pos.com', '$2b$10$K6z8U9TnC.6LnFkLpz8tje5rUZnSu8E2y6Zr4cHvNb8dRFjY0xFIW', 'John', 'Manager', 'manager'),
-('server1', 'server1@pos.com', '$2b$10$K6z8U9TnC.6LnFkLpz8tje5rUZnSu8E2y6Zr4cHvNb8dRFjY0xFIW', 'Sarah', 'Smith', 'server'),
-('server2', 'server2@pos.com', '$2b$10$K6z8U9TnC.6LnFkLpz8tje5rUZnSu8E2y6Zr4cHvNb8dRFjY0xFIW', 'Mike', 'Johnson', 'server'),
-('counter1', 'counter1@pos.com', '$2b$10$K6z8U9TnC.6LnFkLpz8tje5rUZnSu8E2y6Zr4cHvNb8dRFjY0xFIW', 'Lisa', 'Davis', 'counter'),
-('counter2', 'counter2@pos.com', '$2b$10$K6z8U9TnC.6LnFkLpz8tje5rUZnSu8E2y6Zr4cHvNb8dRFjY0xFIW', 'Tom', 'Wilson', 'counter'),
-('kitchen1', 'kitchen@pos.com', '$2b$10$K6z8U9TnC.6LnFkLpz8tje5rUZnSu8E2y6Zr4cHvNb8dRFjY0xFIW', 'Chef', 'Williams', 'kitchen');
+('admin', 'admin@pos.com', '$2a$10$FPH.ONfAgquWmXjM3LE61OIgOPgXX8i.jOISCHZ2DpK2gg4krEWfO', 'Admin', 'User', 'admin'),
+('manager1', 'manager@pos.com', '$2a$10$FPH.ONfAgquWmXjM3LE61OIgOPgXX8i.jOISCHZ2DpK2gg4krEWfO', 'John', 'Manager', 'manager'),
+('server1', 'server1@pos.com', '$2a$10$FPH.ONfAgquWmXjM3LE61OIgOPgXX8i.jOISCHZ2DpK2gg4krEWfO', 'Sarah', 'Smith', 'server'),
+('server2', 'server2@pos.com', '$2a$10$FPH.ONfAgquWmXjM3LE61OIgOPgXX8i.jOISCHZ2DpK2gg4krEWfO', 'Mike', 'Johnson', 'server'),
+('counter1', 'counter1@pos.com', '$2a$10$FPH.ONfAgquWmXjM3LE61OIgOPgXX8i.jOISCHZ2DpK2gg4krEWfO', 'Lisa', 'Davis', 'counter'),
+('counter2', 'counter2@pos.com', '$2a$10$FPH.ONfAgquWmXjM3LE61OIgOPgXX8i.jOISCHZ2DpK2gg4krEWfO', 'Tom', 'Wilson', 'counter'),
+('kitchen1', 'kitchen@pos.com', '$2a$10$FPH.ONfAgquWmXjM3LE61OIgOPgXX8i.jOISCHZ2DpK2gg4krEWfO', 'Chef', 'Williams', 'kitchen');
 
 -- Insert categories
 INSERT INTO categories (name, description, color, sort_order) VALUES
