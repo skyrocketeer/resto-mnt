@@ -320,6 +320,52 @@ cd frontend && npm run dev
 
 ---
 
+## 🔧 **Troubleshooting**
+
+### **Docker Build Issues**
+
+If you encounter Docker build errors, try these solutions:
+
+#### **Backend Build Errors (go.mod/go.sum issues)**
+```bash
+# Clean up Go modules and rebuild
+cd backend
+go mod tidy
+go mod download
+cd ..
+docker-compose down
+docker-compose -f docker-compose.dev.yml up -d --build
+```
+
+#### **General Docker Issues**
+```bash
+# Clean rebuild everything
+make clean
+make dev
+
+# Or manually clean and rebuild
+docker system prune -f
+docker-compose down --volumes --remove-orphans
+docker-compose -f docker-compose.dev.yml up -d --build
+```
+
+#### **Permission Issues (Linux/WSL)**
+```bash
+# Fix file permissions
+sudo chown -R $USER:$USER .
+chmod -R 755 .
+```
+
+### **Common Solutions**
+- 🔄 **Restart Docker Desktop** if you're on Windows/Mac
+- 🧹 **Clear Docker cache**: `docker system prune -f`
+- 📦 **Update dependencies**: Run `go mod tidy` in backend and `npm install` in frontend
+- 🐳 **Rebuild containers**: Use `--build` flag with docker-compose commands
+
+> 💡 **Still having issues?** [Open a GitHub issue](https://github.com/madebyaris/poinf-of-sales/issues) with your error logs!
+
+---
+
 ## 📄 **License**
 
 This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) file for details.
