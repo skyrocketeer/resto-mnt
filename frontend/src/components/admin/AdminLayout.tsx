@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { UserMenu } from '@/components/ui/user-menu'
 // import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card' // Removed - not used in simplified layout
 import { 
   LayoutDashboard, 
@@ -9,7 +10,6 @@ import {
   ChefHat,
   ShoppingCart,
   Settings,
-  LogOut,
   User,
   Menu,
   BarChart3,
@@ -119,13 +119,6 @@ export function AdminLayout({ user }: AdminLayoutProps) {
     window.addEventListener('resize', checkScreenSize)
     return () => window.removeEventListener('resize', checkScreenSize)
   }, [])
-
-  const handleLogout = () => {
-    apiClient.clearAuth()
-    localStorage.removeItem('pos_user')
-    localStorage.removeItem('pos_token')
-    window.location.href = '/login'
-  }
 
   const renderCurrentSection = () => {
     switch (currentSection) {
@@ -245,60 +238,14 @@ export function AdminLayout({ user }: AdminLayoutProps) {
             {/* Spacer to push logout to bottom */}
             <div className="flex-1"></div>
             
-            {/* User Info - Compact */}
-            {(!sidebarCollapsed || isMobile || isTablet) && (
-              <div className={`p-3 bg-muted/30 rounded-lg ${isTablet ? 'mt-6' : 'mt-4'}`}>
-                <div className="flex items-center gap-3">
-                  <div className={`bg-primary rounded-full flex items-center justify-center ${
-                    isTablet ? 'w-10 h-10' : 'w-8 h-8'
-                  }`}>
-                    <User className={`text-primary-foreground ${
-                      isTablet ? 'w-5 h-5' : 'w-4 h-4'
-                    }`} />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className={`font-medium truncate ${
-                      isTablet ? 'text-base' : 'text-sm'
-                    }`}>{user.first_name} {user.last_name}</p>
-                    <p className={`text-muted-foreground truncate ${
-                      isTablet ? 'text-sm' : 'text-xs'
-                    }`}>{user.email}</p>
-                  </div>
-                  <Badge variant="outline" className={isTablet ? "text-sm" : "text-xs"}>
-                    {user.role.toUpperCase()}
-                  </Badge>
-                </div>
-              </div>
-            )}
-            
-            {/* Logout Button - Part of navigation */}
-            <Button
-              variant="ghost"
-              onClick={handleLogout}
-              className={`w-full justify-start mt-3 text-destructive hover:text-destructive hover:bg-destructive/10 ${
-                sidebarCollapsed && !isMobile && !isTablet ? 'px-2' : 'px-4'
-              } ${
-                isTablet ? 'h-12 text-base' : 'h-10 text-sm'
-              }`}
-              title={sidebarCollapsed && !isMobile && !isTablet ? 'Logout' : undefined}
-            >
-              <LogOut className={isTablet ? "w-6 h-6" : "w-5 h-5"} />
-              {(!sidebarCollapsed || isMobile || isTablet) && (
-                <span className={isTablet ? "ml-4" : "ml-3"}>Logout</span>
-              )}
-            </Button>
-            
-            {/* Collapsed user avatar */}
-            {sidebarCollapsed && !isMobile && !isTablet && (
-              <div className="flex justify-center mt-2">
-                <div 
-                  className="w-6 h-6 bg-primary rounded-full flex items-center justify-center cursor-pointer"
-                  title={`${user.first_name} ${user.last_name} (${user.role.toUpperCase()})`}
-                >
-                  <User className="w-3 h-3 text-primary-foreground" />
-                </div>
-              </div>
-            )}
+            {/* User Menu */}
+            <div className={isTablet ? 'mt-6' : 'mt-4'}>
+              <UserMenu 
+                user={user} 
+                collapsed={sidebarCollapsed && !isMobile && !isTablet}
+                size={isTablet ? 'lg' : 'md'}
+              />
+            </div>
           </nav>
       </div>
 

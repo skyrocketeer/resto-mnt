@@ -2,13 +2,13 @@ import { useState, useEffect } from 'react'
 import { Link, useRouter, useLocation } from '@tanstack/react-router'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { UserMenu } from '@/components/ui/user-menu'
 import { 
   LayoutDashboard, 
   Users, 
   CreditCard, 
   ChefHat,
   Settings,
-  LogOut,
   User,
   Menu,
   BarChart3,
@@ -114,13 +114,6 @@ export function AdminSidebar({ user }: AdminSidebarProps) {
     return () => window.removeEventListener('resize', checkScreenSize)
   }, [])
 
-  const handleLogout = () => {
-    apiClient.clearAuth()
-    localStorage.removeItem('pos_user')
-    localStorage.removeItem('pos_token')
-    router.navigate({ to: '/login' })
-  }
-
   const isActiveRoute = (href: string) => {
     return location.pathname === href
   }
@@ -197,35 +190,13 @@ export function AdminSidebar({ user }: AdminSidebarProps) {
           ))}
         </div>
 
-        {/* User Info & Logout */}
-        <div className="p-4 border-t border-border space-y-2">
-          {/* User Info */}
-          {!sidebarCollapsed && (
-            <div className="p-3 bg-muted/30 rounded-lg">
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center">
-                  <User className="w-4 h-4 text-primary-foreground" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium truncate">{user.first_name} {user.last_name}</p>
-                  <p className="text-xs text-muted-foreground truncate">{user.email}</p>
-                </div>
-                <Badge variant="outline">{user.role.toUpperCase()}</Badge>
-              </div>
-            </div>
-          )}
-
-          {/* Logout Button */}
-          <Button
-            variant="ghost"
-            onClick={handleLogout}
-            className="w-full justify-start text-destructive hover:text-destructive hover:bg-destructive/10"
-          >
-            <LogOut className="w-5 h-5" />
-            {(!sidebarCollapsed || isMobile || isTablet) && (
-              <span className="ml-3">Logout</span>
-            )}
-          </Button>
+        {/* User Menu */}
+        <div className="p-4 border-t border-border">
+          <UserMenu 
+            user={user} 
+            collapsed={sidebarCollapsed && !isMobile && !isTablet}
+            size={isTablet ? 'lg' : 'md'}
+          />
         </div>
       </div>
     </>
