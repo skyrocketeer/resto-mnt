@@ -5,7 +5,7 @@ import { AdminLayout } from '@/components/admin/AdminLayout'
 import { ServerInterface } from '@/components/server/ServerInterface'
 import { CounterInterface } from '@/components/counter/CounterInterface'
 import { POSLayout } from '@/components/pos/POSLayout'
-import { KitchenLayout } from '@/components/kitchen/KitchenLayout'
+import { NewEnhancedKitchenLayout } from '@/components/kitchen/NewEnhancedKitchenLayout'
 import { 
   LayoutDashboard, 
   Users, 
@@ -151,7 +151,7 @@ export function RoleBasedLayout({ user }: RoleBasedLayoutProps) {
       case 'counter':
         return <CounterInterface />
       case 'kitchen':
-        return <KitchenLayout />
+        return <NewEnhancedKitchenLayout user={user} />
       case 'pos':
         return <POSLayout user={user} />
       default:

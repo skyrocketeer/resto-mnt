@@ -28,6 +28,9 @@
 ![Dashboard Server Interface](gh-image/dashboard-server-interface.png)
 *Clean, modern interface designed for speed and efficiency with real-time updates*
 
+![Dashboard Kitchen Interface](gh-image/dashboard-kitchen-interface.png)
+*Clean, modern interface with focus for the tablet and touch screen, easy to use for the kitchen people *
+
 ### ✨ **Enterprise-Grade Admin Tables**
 Our latest update includes **professional data tables** with:
 - 📊 **Advanced sorting & filtering** with TanStack Table

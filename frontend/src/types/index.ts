@@ -120,6 +120,7 @@ export interface OrderItem {
   created_at: string;
   updated_at: string;
   product?: Product;
+  notes?: string; // Alternative field name for special instructions
 }
 
 export interface CreateOrderRequest {

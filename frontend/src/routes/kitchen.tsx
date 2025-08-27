@@ -1,30 +1,61 @@
-import { createFileRoute, Navigate } from '@tanstack/react-router'
-import { useState, useEffect } from 'react'
-import apiClient from '@/api/client'
-import { KitchenLayout } from '@/components/kitchen/KitchenLayout'
-import type { User } from '@/types'
+import { createFileRoute, Navigate } from '@tanstack/react-router';
+import { useState, useEffect } from 'react';
+import apiClient from '@/api/client';
+import { NewEnhancedKitchenLayout } from '@/components/kitchen/NewEnhancedKitchenLayout';
+import type { User } from '@/types';
 
 export const Route = createFileRoute('/kitchen')({
   component: KitchenPage,
-})
+});
 
 function KitchenPage() {
-  const [user, setUser] = useState<User | null>(null)
+  const [user, setUser] = useState<User | null>(null);
+  const [isLoadingAuth, setIsLoadingAuth] = useState(true);
 
   useEffect(() => {
-    const storedUser = localStorage.getItem('pos_user')
-    if (storedUser) {
-      setUser(JSON.parse(storedUser))
-    }
-  }, [])
+    const loadAuthState = async () => {
+      const token = localStorage.getItem('pos_token');
+      const storedUser = localStorage.getItem('pos_user');
+      
+      console.log('🔍 Loading kitchen auth - token:', token ? 'exists' : 'missing');
+      console.log('🔍 Loading kitchen auth - user:', storedUser ? 'exists' : 'missing');
+      
+      if (storedUser && token) {
+        try {
+          const parsedUser = JSON.parse(storedUser);
+          setUser(parsedUser);
+          console.log('✅ Kitchen auth loaded - user role:', parsedUser.role);
+        } catch (error) {
+          console.error('❌ Invalid stored auth data, clearing');
+          apiClient.clearAuth();
+        }
+      }
+      
+      setIsLoadingAuth(false);
+    };
+    
+    loadAuthState();
+  }, []);
+
+  // Loading state
+  if (isLoadingAuth) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading kitchen...</p>
+        </div>
+      </div>
+    );
+  }
 
   // Check authentication
   if (!apiClient.isAuthenticated() || !user) {
-    return <Navigate to="/login" />
+    return <Navigate to="/login" replace />;
   }
 
   // Check if user has kitchen access (kitchen, admin, or manager roles)
-  const hasKitchenAccess = user.role === 'kitchen' || user.role === 'admin' || user.role === 'manager'
+  const hasKitchenAccess = user.role === 'kitchen' || user.role === 'admin' || user.role === 'manager';
   
   if (!hasKitchenAccess) {
     return (
@@ -45,8 +76,8 @@ function KitchenPage() {
           </button>
         </div>
       </div>
-    )
+    );
   }
 
-  return <KitchenLayout user={user} />
+  return <NewEnhancedKitchenLayout user={user} />;
 }

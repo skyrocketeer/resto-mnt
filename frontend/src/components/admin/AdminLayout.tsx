@@ -25,7 +25,7 @@ import { AdminDashboard } from './AdminDashboard'
 import { POSLayout } from '@/components/pos/POSLayout'
 import { ServerInterface } from '@/components/server/ServerInterface'
 import { CounterInterface } from '@/components/counter/CounterInterface'
-import { KitchenLayout } from '@/components/kitchen/KitchenLayout'
+import { NewEnhancedKitchenLayout } from '@/components/kitchen/NewEnhancedKitchenLayout'
 import { ToastDemo } from '@/components/ui/demo-toast'
 import { FormDemo } from '@/components/forms/FormDemo'
 import { AdminStaffManagement } from './AdminStaffManagement'
@@ -129,7 +129,7 @@ export function AdminLayout({ user }: AdminLayoutProps) {
       case 'counter':
         return <CounterInterface />
       case 'kitchen':
-        return <KitchenLayout user={user} />
+        return <NewEnhancedKitchenLayout user={user} />
       case 'settings':
         return (
           <div className="space-y-8">

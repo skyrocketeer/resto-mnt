@@ -1,6 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { useState, useEffect } from 'react'
-import { KitchenLayout } from '@/components/kitchen/KitchenLayout'
+import { NewEnhancedKitchenLayout } from '@/components/kitchen/NewEnhancedKitchenLayout'
 import type { User } from '@/types'
 
 export const Route = createFileRoute('/admin/kitchen')({
@@ -25,5 +25,5 @@ function AdminKitchenPage() {
     return <div>Loading...</div>
   }
 
-  return <KitchenLayout user={user} />
+  return <NewEnhancedKitchenLayout user={user} />
 }
