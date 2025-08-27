@@ -395,6 +395,288 @@ export function FormFieldWrapper<T extends FieldValues>({
 }
 ```
 
+## 🍳 Enhanced Kitchen Component Patterns
+
+### As-Ready Service Workflow Components
+```typescript
+// Enhanced kitchen interface with individual item tracking
+import React, { useState, useCallback, useEffect } from 'react'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import { CheckCircle } from 'lucide-react'
+import { cn } from '@/lib/utils'
+
+interface EnhancedKitchenOrderProps {
+  order: Order
+  onItemStatusUpdate: (orderId: string, itemId: string, status: ItemStatus) => void
+  onItemServe: (orderId: string, itemId: string) => void
+  soundEnabled: boolean
+  volume: number
+}
+
+// ✅ CORRECT: Enhanced kitchen order card with as-ready service
+export const EnhancedKitchenOrderCard: React.FC<EnhancedKitchenOrderProps> = ({
+  order,
+  onItemStatusUpdate,
+  onItemServe,
+  soundEnabled,
+  volume
+}) => {
+  const [checkedItems, setCheckedItems] = useState<Set<string>>(new Set())
+
+  // Calculate progress with individual item tracking
+  const displayItems = order.items || []
+  const totalItems = displayItems.length
+  const readyItems = checkedItems.size
+  const servedItems = displayItems.filter(item => item.status === 'served').length
+  const progress = totalItems > 0 ? ((readyItems + servedItems) / totalItems) * 100 : 0
+
+  // ✅ CORRECT: Individual item status management
+  const toggleItem = useCallback((itemId: string) => {
+    setCheckedItems(prev => {
+      const newSet = new Set(prev)
+      if (newSet.has(itemId)) {
+        newSet.delete(itemId)
+        onItemStatusUpdate(order.id, itemId, 'preparing')
+      } else {
+        newSet.add(itemId)
+        onItemStatusUpdate(order.id, itemId, 'ready')
+        
+        // Play ready sound notification
+        if (soundEnabled) {
+          playReadySound(volume)
+        }
+      }
+      return newSet
+    })
+  }, [order.id, onItemStatusUpdate, soundEnabled, volume])
+
+  // ✅ CORRECT: Individual item serving
+  const handleItemServe = useCallback((itemId: string, itemName: string) => {
+    onItemServe(order.id, itemId)
+    
+    // Play served sound notification (distinct from ready)
+    if (soundEnabled) {
+      playServedSound(volume)
+    }
+    
+    // Remove from checked items
+    setCheckedItems(prev => {
+      const newSet = new Set(prev)
+      newSet.delete(itemId)
+      return newSet
+    })
+  }, [order.id, onItemServe, soundEnabled, volume])
+
+  // Sound notification functions
+  const playReadySound = (volume: number) => {
+    try {
+      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)()
+      const oscillator = audioContext.createOscillator()
+      const gainNode = audioContext.createGain()
+
+      oscillator.connect(gainNode)
+      gainNode.connect(audioContext.destination)
+
+      oscillator.frequency.setValueAtTime(1200, audioContext.currentTime) // 1200Hz for ready
+      gainNode.gain.setValueAtTime(volume * 0.3, audioContext.currentTime)
+
+      oscillator.start()
+      oscillator.stop(audioContext.currentTime + 0.3)
+    } catch (error) {
+      console.log('Sound notification failed:', error)
+    }
+  }
+
+  const playServedSound = (volume: number) => {
+    try {
+      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)()
+      const oscillator = audioContext.createOscillator()
+      const gainNode = audioContext.createGain()
+
+      oscillator.connect(gainNode)
+      gainNode.connect(audioContext.destination)
+
+      oscillator.frequency.setValueAtTime(1400, audioContext.currentTime) // 1400Hz for served
+      gainNode.gain.setValueAtTime(volume * 0.2, audioContext.currentTime)
+
+      oscillator.start()
+      oscillator.stop(audioContext.currentTime + 0.2)
+    } catch (error) {
+      console.log('Sound notification failed:', error)
+    }
+  }
+
+  return (
+    <Card className="mb-6 border-2 border-blue-200 bg-white shadow-lg">
+      <CardHeader className="pb-4">
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-xl font-bold text-gray-900">
+            Order #{order.order_number}
+          </CardTitle>
+          <Badge variant="outline" className="text-sm">
+            {order.order_type === 'dine_in' ? `Table ${order.table?.table_number}` : 'Takeaway'}
+          </Badge>
+        </div>
+        
+        {/* Enhanced progress tracking */}
+        <div className="mt-3">
+          <div className="flex items-center justify-between text-sm text-gray-600 mb-2">
+            <span>Progress</span>
+            <span>{readyItems} ready • {servedItems} served • {totalItems - readyItems - servedItems} cooking ({Math.round(progress)}% complete)</span>
+          </div>
+          <div className="w-full bg-gray-200 rounded-full h-2">
+            <div 
+              className="bg-green-500 h-2 rounded-full transition-all duration-300"
+              style={{ width: `${progress}%` }}
+            />
+          </div>
+        </div>
+      </CardHeader>
+
+      <CardContent>
+        <div className="space-y-3">
+          {displayItems.map((item, index) => {
+            const isServed = item.status === 'served'
+            const isReady = checkedItems.has(item.id)
+
+            return (
+              <div key={item.id} className={cn(
+                "flex items-start space-x-4 p-4 rounded-lg border-2 transition-colors",
+                isServed ? "bg-gray-50 border-gray-300 opacity-75" : "bg-white hover:border-blue-200"
+              )}>
+                {/* Item checkbox */}
+                <button
+                  onClick={() => !isServed && toggleItem(item.id)}
+                  disabled={isServed}
+                  className={cn(
+                    "w-8 h-8 rounded-lg border-2 flex items-center justify-center transition-all mt-1 flex-shrink-0",
+                    isServed
+                      ? "bg-gray-400 border-gray-400 text-white cursor-not-allowed"
+                      : isReady
+                        ? "bg-green-500 border-green-500 text-white shadow-lg"
+                        : "border-gray-300 hover:border-green-400 hover:bg-green-50"
+                  )}
+                >
+                  {(isReady || isServed) && <CheckCircle className="w-5 h-5" />}
+                </button>
+
+                <div className="flex-1 min-w-0">
+                  <div className={cn(
+                    "font-semibold text-lg mb-2",
+                    isServed ? "line-through text-gray-500" : isReady && "line-through text-muted-foreground"
+                  )}>
+                    {item.quantity}x {item.product?.name || `Item ${index + 1}`}
+                    {isServed && <span className="ml-2 text-xs bg-gray-200 text-gray-700 px-2 py-1 rounded">SERVED</span>}
+                  </div>
+
+                  {/* Special instructions */}
+                  {item.special_instructions && (
+                    <div className="text-sm text-orange-600 bg-orange-50 px-2 py-1 rounded mb-2">
+                      Note: {item.special_instructions}
+                    </div>
+                  )}
+
+                  <div className="flex items-center justify-between mt-2">
+                    {/* Status indicator */}
+                    <div className={cn(
+                      "text-xs font-medium px-2 py-1 rounded-full",
+                      isServed
+                        ? "bg-gray-100 text-gray-600"
+                        : isReady
+                          ? "bg-green-100 text-green-800"
+                          : "bg-orange-100 text-orange-800"
+                    )}>
+                      {isServed ? '🍽️ Served' : isReady ? '✅ Ready' : '🍳 Cooking'}
+                    </div>
+
+                    {/* Individual serve button */}
+                    {isReady && !isServed && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-6 px-2 text-xs bg-blue-50 hover:bg-blue-100 border-blue-300"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handleItemServe(item.id, item.product?.name || 'Item')
+                        }}
+                      >
+                        🍽️ Serve Now
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      </CardContent>
+    </Card>
+  )
+}
+```
+
+### Sound Notification System
+```typescript
+// Sound notification service for kitchen operations
+class KitchenSoundService {
+  private audioContext: AudioContext | null = null
+  private enabled: boolean = true
+  private volume: number = 0.5
+
+  async initialize(): Promise<void> {
+    try {
+      this.audioContext = new (window.AudioContext || (window as any).webkitAudioContext)()
+    } catch (error) {
+      console.warn('Audio context not available:', error)
+    }
+  }
+
+  // ✅ CORRECT: Different sounds for different kitchen events
+  playNewOrderSound(): void {
+    this.playTone(800, 0.5, this.volume * 0.4) // 800Hz for new orders
+  }
+
+  playAllReadySound(): void {
+    this.playTone(1200, 0.3, this.volume * 0.3) // 1200Hz for all items ready
+  }
+
+  playItemServedSound(): void {
+    this.playTone(1400, 0.2, this.volume * 0.2) // 1400Hz for item served
+  }
+
+  private playTone(frequency: number, duration: number, volume: number): void {
+    if (!this.enabled || !this.audioContext) return
+
+    try {
+      const oscillator = this.audioContext.createOscillator()
+      const gainNode = this.audioContext.createGain()
+
+      oscillator.connect(gainNode)
+      gainNode.connect(this.audioContext.destination)
+
+      oscillator.frequency.setValueAtTime(frequency, this.audioContext.currentTime)
+      gainNode.gain.setValueAtTime(volume, this.audioContext.currentTime)
+
+      oscillator.start()
+      oscillator.stop(this.audioContext.currentTime + duration)
+    } catch (error) {
+      console.log('Sound playback failed:', error)
+    }
+  }
+
+  setEnabled(enabled: boolean): void {
+    this.enabled = enabled
+  }
+
+  setVolume(volume: number): void {
+    this.volume = Math.max(0, Math.min(1, volume))
+  }
+}
+```
+
 ## 🎭 Role-Based Component Patterns
 
 ### Role-Specific Interface Components
@@ -420,7 +702,7 @@ export const RoleBasedLayout: React.FC<RoleBasedLayoutProps> = ({ user }) => {
     case 'counter':
       return <CounterInterface user={user} />
     case 'kitchen':
-      return <KitchenLayout user={user} />
+      return <NewEnhancedKitchenLayout user={user} /> // Enhanced with as-ready service
     default:
       return <POSLayout user={user} />
   }

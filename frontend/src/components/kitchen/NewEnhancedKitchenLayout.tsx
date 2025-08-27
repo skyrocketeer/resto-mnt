@@ -1,11 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
-  Settings, 
   RefreshCw, 
   Volume2, 
   VolumeX, 
@@ -14,8 +13,7 @@ import {
   Package,
   CheckCircle,
   AlertCircle,
-  LogOut,
-  User
+  LogOut
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import apiClient from '@/api/client';
@@ -42,20 +40,26 @@ export function NewEnhancedKitchenLayout({ user }: NewEnhancedKitchenLayoutProps
 
   const orders = ordersResponse || [];
 
+  // Filter orders to only show kitchen-relevant statuses
+  // Orders disappear when served/completed by server staff
+  const kitchenRelevantOrders = orders.filter((order: Order) => 
+    ['confirmed', 'preparing', 'ready'].includes(order.status)
+  );
+
   // Group orders by status
   const ordersByStatus = {
-    confirmed: orders.filter((order: Order) => order.status === 'confirmed'),
-    preparing: orders.filter((order: Order) => order.status === 'preparing'),
-    ready: orders.filter((order: Order) => order.status === 'ready'),
+    confirmed: kitchenRelevantOrders.filter((order: Order) => order.status === 'confirmed'),
+    preparing: kitchenRelevantOrders.filter((order: Order) => order.status === 'preparing'),
+    ready: kitchenRelevantOrders.filter((order: Order) => order.status === 'ready'),
   };
 
-  // Calculate statistics
+  // Calculate statistics based on kitchen-relevant orders only
   const stats = {
-    total: orders.length,
+    total: kitchenRelevantOrders.length,
     newOrders: ordersByStatus.confirmed.length,
     preparing: ordersByStatus.preparing.length,
     ready: ordersByStatus.ready.length,
-    urgent: orders.filter((order: Order) => {
+    urgent: kitchenRelevantOrders.filter((order: Order) => {
       const created = new Date(order.created_at);
       const now = new Date();
       const minutesWaiting = Math.floor((now.getTime() - created.getTime()) / 1000 / 60);
@@ -86,6 +90,41 @@ export function NewEnhancedKitchenLayout({ user }: NewEnhancedKitchenLayoutProps
       refetch();
     } catch (error) {
       console.error('Failed to update item status:', error);
+    }
+  };
+
+  // Handle individual item serving (as-ready service)
+  const handleItemServe = async (orderId: string, itemId: string, itemName: string) => {
+    try {
+      // Mark item as served
+      await apiClient.updateOrderItemStatus(orderId, itemId, 'served');
+      
+      // Play notification sound
+      if (soundEnabled) {
+        try {
+          const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+          const oscillator = audioContext.createOscillator();
+          const gainNode = audioContext.createGain();
+          
+          oscillator.connect(gainNode);
+          gainNode.connect(audioContext.destination);
+          
+          // Different tone for individual item served (higher pitch)
+          oscillator.frequency.setValueAtTime(1400, audioContext.currentTime);
+          gainNode.gain.setValueAtTime(volume * 0.2, audioContext.currentTime);
+          
+          oscillator.start();
+          oscillator.stop(audioContext.currentTime + 0.2);
+        } catch (error) {
+          console.log('Sound notification failed:', error);
+        }
+      }
+      
+      // Show success message
+      console.log(`${itemName} served to customer`);
+      refetch();
+    } catch (error) {
+      console.error('Failed to serve item:', error);
     }
   };
 
@@ -124,15 +163,14 @@ export function NewEnhancedKitchenLayout({ user }: NewEnhancedKitchenLayoutProps
       return 'border-blue-500 bg-blue-50';
     };
 
-    const progress = order.items ? (checkedItems.size / order.items.length) * 100 : 0;
     const waitTime = Math.floor((new Date().getTime() - new Date(order.created_at).getTime()) / 1000 / 60);
 
     // Mock items if none exist (for demo purposes)
     const displayItems = order.items && order.items.length > 0 ? order.items : [
       {
-        id: '1',
+        id: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
         order_id: order.id,
-        product_id: '1',
+        product_id: 'p1b2c3d4-e5f6-7890-abcd-ef1234567890',
         quantity: 2,
         unit_price: 12.99,
         total_price: 25.98,
@@ -140,12 +178,12 @@ export function NewEnhancedKitchenLayout({ user }: NewEnhancedKitchenLayoutProps
         status: 'preparing' as const,
         created_at: order.created_at,
         updated_at: order.updated_at,
-        product: { id: '1', name: 'Cheeseburger', price: 12.99, description: 'Beef patty with cheese', category_id: '1', is_available: true, created_at: '', updated_at: '' }
+        product: { id: 'p1b2c3d4-e5f6-7890-abcd-ef1234567890', name: 'Cheeseburger', price: 12.99, description: 'Beef patty with cheese', category_id: 'c1b2c3d4-e5f6-7890-abcd-ef1234567890', is_available: true, created_at: '', updated_at: '' }
       },
       {
-        id: '2',
+        id: 'b2c3d4e5-f6g7-8901-bcde-f23456789012',
         order_id: order.id,
-        product_id: '2',
+        product_id: 'p2c3d4e5-f6g7-8901-bcde-f23456789012',
         quantity: 1,
         unit_price: 4.99,
         total_price: 4.99,
@@ -153,12 +191,12 @@ export function NewEnhancedKitchenLayout({ user }: NewEnhancedKitchenLayoutProps
         status: 'preparing' as const,
         created_at: order.created_at,
         updated_at: order.updated_at,
-        product: { id: '2', name: 'French Fries', price: 4.99, description: 'Crispy golden fries', category_id: '2', is_available: true, created_at: '', updated_at: '' }
+        product: { id: 'p2c3d4e5-f6g7-8901-bcde-f23456789012', name: 'French Fries', price: 4.99, description: 'Crispy golden fries', category_id: 'c2c3d4e5-f6g7-8901-bcde-f23456789012', is_available: true, created_at: '', updated_at: '' }
       },
       {
-        id: '3',
+        id: 'c3d4e5f6-g7h8-9012-cdef-345678901234',
         order_id: order.id,
-        product_id: '3',
+        product_id: 'p3d4e5f6-g7h8-9012-cdef-345678901234',
         quantity: 1,
         unit_price: 2.99,
         total_price: 2.99,
@@ -166,9 +204,15 @@ export function NewEnhancedKitchenLayout({ user }: NewEnhancedKitchenLayoutProps
         status: 'preparing' as const,
         created_at: order.created_at,
         updated_at: order.updated_at,
-        product: { id: '3', name: 'Coca Cola', price: 2.99, description: 'Refreshing cola drink', category_id: '3', is_available: true, created_at: '', updated_at: '' }
+        product: { id: 'p3d4e5f6-g7h8-9012-cdef-345678901234', name: 'Coca Cola', price: 2.99, description: 'Refreshing cola drink', category_id: 'c3d4e5f6-g7h8-9012-cdef-345678901234', is_available: true, created_at: '', updated_at: '' }
       }
     ];
+
+    // Calculate progress including served items
+    const totalItems = displayItems.length;
+    const readyItems = checkedItems.size;
+    const servedItems = displayItems.filter(item => item.status === 'served').length;
+    const progress = totalItems > 0 ? ((readyItems + servedItems) / totalItems) * 100 : 0;
 
     return (
       <Card className={cn("w-full max-w-lg mx-auto min-h-[500px]", getUrgencyColor())}>
@@ -208,7 +252,7 @@ export function NewEnhancedKitchenLayout({ user }: NewEnhancedKitchenLayoutProps
             />
           </div>
           <div className="text-sm text-muted-foreground mt-2 font-medium">
-            {checkedItems.size} of {displayItems.length} items completed ({Math.round(progress)}%)
+            {readyItems} ready • {servedItems} served • {totalItems - readyItems - servedItems} cooking ({Math.round(progress)}% complete)
           </div>
         </CardHeader>
         
@@ -220,26 +264,37 @@ export function NewEnhancedKitchenLayout({ user }: NewEnhancedKitchenLayoutProps
               Food Items:
             </h4>
             
-            {displayItems.map((item, index) => (
-              <div key={item.id} className="flex items-start space-x-4 p-4 bg-white rounded-lg border-2 hover:border-blue-200 transition-colors">
-                <button
-                  onClick={() => toggleItem(item.id)}
-                  className={cn(
-                    "w-8 h-8 rounded-lg border-2 flex items-center justify-center transition-all mt-1 flex-shrink-0",
-                    checkedItems.has(item.id)
-                      ? "bg-green-500 border-green-500 text-white shadow-lg"
-                      : "border-gray-300 hover:border-green-400 hover:bg-green-50"
-                  )}
-                >
-                  {checkedItems.has(item.id) && <CheckCircle className="w-5 h-5" />}
-                </button>
+            {displayItems.map((item, index) => {
+              const isServed = item.status === 'served';
+              const isReady = checkedItems.has(item.id);
+              
+              return (
+                <div key={item.id} className={cn(
+                  "flex items-start space-x-4 p-4 rounded-lg border-2 transition-colors",
+                  isServed ? "bg-gray-50 border-gray-300 opacity-75" : "bg-white hover:border-blue-200"
+                )}>
+                  <button
+                    onClick={() => !isServed && toggleItem(item.id)}
+                    disabled={isServed}
+                    className={cn(
+                      "w-8 h-8 rounded-lg border-2 flex items-center justify-center transition-all mt-1 flex-shrink-0",
+                      isServed 
+                        ? "bg-gray-400 border-gray-400 text-white cursor-not-allowed"
+                        : isReady
+                          ? "bg-green-500 border-green-500 text-white shadow-lg"
+                          : "border-gray-300 hover:border-green-400 hover:bg-green-50"
+                    )}
+                  >
+                    {(isReady || isServed) && <CheckCircle className="w-5 h-5" />}
+                  </button>
                 
                 <div className="flex-1 min-w-0">
                   <div className={cn(
                     "font-semibold text-lg mb-2",
-                    checkedItems.has(item.id) && "line-through text-muted-foreground"
+                    isServed ? "line-through text-gray-500" : isReady && "line-through text-muted-foreground"
                   )}>
                     {item.quantity}x {item.product?.name || `Item ${index + 1}`}
+                    {isServed && <span className="ml-2 text-xs bg-gray-200 text-gray-700 px-2 py-1 rounded">SERVED</span>}
                   </div>
                   
                   {item.special_instructions && (
@@ -248,17 +303,37 @@ export function NewEnhancedKitchenLayout({ user }: NewEnhancedKitchenLayoutProps
                     </div>
                   )}
                   
-                  <div className={cn(
-                    "text-xs font-medium mt-2 px-2 py-1 rounded-full inline-block",
-                    checkedItems.has(item.id) 
-                      ? "bg-green-100 text-green-800" 
-                      : "bg-orange-100 text-orange-800"
-                  )}>
-                    {checkedItems.has(item.id) ? '✅ Ready' : '🍳 Cooking'}
+                  <div className="flex items-center justify-between mt-2">
+                    <div className={cn(
+                      "text-xs font-medium px-2 py-1 rounded-full",
+                      isServed 
+                        ? "bg-gray-100 text-gray-600"
+                        : isReady 
+                          ? "bg-green-100 text-green-800" 
+                          : "bg-orange-100 text-orange-800"
+                    )}>
+                      {isServed ? '🍽️ Served' : isReady ? '✅ Ready' : '🍳 Cooking'}
+                    </div>
+                    
+                    {/* Individual Item Serve Button */}
+                    {isReady && !isServed && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-6 px-2 text-xs bg-blue-50 hover:bg-blue-100 border-blue-300"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleItemServe(order.id, item.id, item.product?.name || 'Item');
+                        }}
+                      >
+                        🍽️ Serve Now
+                      </Button>
+                    )}
                   </div>
                 </div>
               </div>
-            ))}
+              );
+            })}
           </div>
           
           {/* Order Notes */}
@@ -284,10 +359,43 @@ export function NewEnhancedKitchenLayout({ user }: NewEnhancedKitchenLayoutProps
             
             {order.status === 'preparing' && (
               <Button 
-                onClick={() => handleOrderStatusUpdate(order.id, 'ready')}
+                onClick={() => {
+                  // Mark all items as checked
+                  const allItemIds = new Set(displayItems.map(item => item.id));
+                  setCheckedItems(allItemIds);
+                  
+                  // Update all item statuses to ready
+                  displayItems.forEach(item => {
+                    handleItemStatusUpdate(order.id, item.id, 'ready');
+                  });
+                  
+                  // Mark order as ready
+                  setTimeout(() => {
+                    handleOrderStatusUpdate(order.id, 'ready');
+                    
+                    // Play ready notification sound
+                    if (soundEnabled) {
+                      try {
+                        const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+                        const oscillator = audioContext.createOscillator();
+                        const gainNode = audioContext.createGain();
+                        
+                        oscillator.connect(gainNode);
+                        gainNode.connect(audioContext.destination);
+                        
+                        oscillator.frequency.setValueAtTime(1200, audioContext.currentTime);
+                        gainNode.gain.setValueAtTime(volume * 0.3, audioContext.currentTime);
+                        
+                        oscillator.start();
+                        oscillator.stop(audioContext.currentTime + 0.3);
+                      } catch (error) {
+                        console.log('Sound notification failed:', error);
+                      }
+                    }
+                  }, 500);
+                }}
                 className="flex-1 bg-green-600 hover:bg-green-700 h-12 text-lg"
                 size="lg"
-                disabled={checkedItems.size === 0}
               >
                 <CheckCircle className="w-5 h-5 mr-2" />
                 Mark All Ready
@@ -312,7 +420,8 @@ export function NewEnhancedKitchenLayout({ user }: NewEnhancedKitchenLayoutProps
 
   // Takeaway Board Component
   const TakeawayBoard = () => {
-    const takeawayOrders = orders.filter(order => 
+    // Only show takeaway orders that are ready but not yet served/completed
+    const takeawayOrders = kitchenRelevantOrders.filter(order => 
       order.order_type === 'takeout' && order.status === 'ready'
     );
 
@@ -346,7 +455,7 @@ export function NewEnhancedKitchenLayout({ user }: NewEnhancedKitchenLayoutProps
                   Ready for {waitTime} minutes
                 </div>
                 <div className="mt-2">
-                  {order.items?.map((item, index) => (
+                  {order.items?.map((item) => (
                     <div key={item.id} className="text-sm">
                       {item.quantity}x {item.product?.name}
                     </div>
@@ -567,7 +676,7 @@ export function NewEnhancedKitchenLayout({ user }: NewEnhancedKitchenLayoutProps
             </TabsTrigger>
             <TabsTrigger value="takeaway-ready" className="text-lg py-3">
               <Package className="w-5 h-5 mr-2" />
-              Takeaway Ready ({orders.filter(o => o.order_type === 'takeout' && o.status === 'ready').length})
+              Takeaway Ready ({kitchenRelevantOrders.filter(o => o.order_type === 'takeout' && o.status === 'ready').length})
             </TabsTrigger>
           </TabsList>
 
@@ -589,17 +698,17 @@ export function NewEnhancedKitchenLayout({ user }: NewEnhancedKitchenLayoutProps
                   </Button>
                 </div>
               </div>
-            ) : orders.length === 0 ? (
+            ) : kitchenRelevantOrders.length === 0 ? (
               <div className="flex items-center justify-center h-64">
                 <div className="text-center">
                   <ChefHat className="w-12 h-12 mx-auto mb-4 text-gray-400" />
                   <h3 className="text-lg font-medium text-gray-900 mb-2">No Active Orders</h3>
-                  <p className="text-gray-500">Kitchen is all caught up!</p>
+                  <p className="text-gray-500">Kitchen is all caught up! 🎉</p>
                 </div>
               </div>
             ) : (
               <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                {orders.map((order) => (
+                {kitchenRelevantOrders.map((order) => (
                   <EnhancedOrderCard key={order.id} order={order} />
                 ))}
               </div>
