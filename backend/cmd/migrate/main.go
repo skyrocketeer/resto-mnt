@@ -5,26 +5,33 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"path/filepath"
+	"sort"
+	"strconv"
+	"strings"
+	"time"
 
 	"pos-backend/internal/database"
+	"pos-backend/internal/util"
 )
 
 func main() {
 	// Define command line flags
-	upFlag := flag.Bool("up", false, "Apply all pending migrations")
+	upFlag := flag.Bool("up", false, "Apply migrations")
 	downFlag := flag.Bool("down", false, "Rollback the last applied migration")
 	statusFlag := flag.Bool("status", false, "Show migration status")
-	
+	timeout := flag.Duration("timeout", 30*time.Second, "DB operation timeout")
+
 	flag.Parse()
 
 	// Load database configuration from environment variables
 	config := database.Config{
-		Host:     getEnv("DB_HOST", "localhost"),
-		Port:     getEnv("DB_PORT", "5432"),
-		User:     getEnv("DB_USER", "postgres"),
-		Password: getEnv("DB_PASSWORD", ""),
-		DBName:   getEnv("DB_NAME", "restaurant_db"),
-		SSLMode:  getEnv("DB_SSL_MODE", "disable"),
+		Host:     util.FromEnv("DB_HOST", "localhost"),
+		Port:     util.FromEnv("DB_PORT", "5432"),
+		User:     util.FromEnv("DB_USER", "postgres"),
+		Password: util.FromEnv("DB_PASSWORD", ""),
+		DBName:   util.FromEnv("DB_NAME", "pos_system"),
+		SSLMode:  util.FromEnv("DB_SSL_MODE", "disable"),
 	}
 
 	// Connect to database
@@ -34,33 +41,48 @@ func main() {
 	}
 	defer db.Close()
 
-	// Create migration manager
+	// Create migration manager (kept for compatibility with -down/-status)
 	migrationManager := database.NewMigrationManager(db)
 
 	// Execute command based on flags
 	switch {
 	case *upFlag:
-		if err := migrationManager.Migrate(); err != nil {
-			log.Fatalf("Migration failed: %v", err)
+		// run all .sql files from the "./migrations" folder only
+		migrationsDir := "./migrations"
+		files, err := listSQLFiles(migrationsDir)
+		if err != nil {
+			log.Fatalf("Failed to list migration files in %s: %v", migrationsDir, err)
 		}
-		fmt.Println("Migrations applied successfully")
-		
+		if len(files) == 0 {
+			log.Printf("No .sql files found in %s.", migrationsDir)
+			return
+		}
+
+		for _, f := range files {
+			log.Printf("Running migration file: %s\n", f)
+			if err := util.RunSQLFile(db, f, *timeout); err != nil {
+				log.Fatalf("Running SQL migration failed for %s: %v", f, err)
+			}
+		}
+
+		fmt.Println("All migrations executed successfully.")
+
 	case *downFlag:
 		if err := migrationManager.Rollback(); err != nil {
 			log.Fatalf("Rollback failed: %v", err)
 		}
 		fmt.Println("Rollback completed successfully")
-		
+
 	case *statusFlag:
 		if err := showMigrationStatus(migrationManager); err != nil {
 			log.Fatalf("Failed to get migration status: %v", err)
 		}
-		
+
 	default:
 		fmt.Println("Usage: migrate [command]")
 		fmt.Println()
 		fmt.Println("Commands:")
-		fmt.Println("  -up      Apply all pending migrations")
+		fmt.Println("  -up      Apply migrations (use -all to run all SQL files in migrations folders)")
 		fmt.Println("  -down    Rollback the last applied migration")
 		fmt.Println("  -status  Show migration status")
 		fmt.Println()
@@ -109,9 +131,60 @@ func showMigrationStatus(migrationManager *database.MigrationManager) error {
 	return nil
 }
 
-func getEnv(key, defaultValue string) string {
-	if value := os.Getenv(key); value != "" {
-		return value
+// listSQLFiles returns sorted list of .sql files (full path) from the given directory (non-recursive).
+// Sorting rule: cut the first 3 characters of the filename (without extension) and sort by numeric value (cardinal order).
+// If the remaining part is not numeric, those files are ordered after numeric ones and sorted lexicographically.
+func listSQLFiles(dir string) ([]string, error) {
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		return nil, err
 	}
-	return defaultValue
+	type item struct {
+		path string
+		base string
+		key  int
+		ok   bool
+	}
+	var items []item
+	for _, e := range entries {
+		if e.IsDir() {
+			continue
+		}
+		if filepath.Ext(e.Name()) != ".sql" {
+			continue
+		}
+		base := strings.TrimSuffix(e.Name(), filepath.Ext(e.Name()))
+		// cut first 3 letters
+		rem := base
+		if len(base) > 3 {
+			rem = base[3:]
+		} else {
+			rem = ""
+		}
+		it := item{path: filepath.Join(dir, e.Name()), base: base}
+		if rem != "" {
+			if k, err := strconv.Atoi(rem); err == nil {
+				it.key = k
+				it.ok = true
+			}
+		}
+		items = append(items, it)
+	}
+	sort.Slice(items, func(i, j int) bool {
+		a, b := items[i], items[j]
+		if a.ok && b.ok {
+			return a.key < b.key
+		}
+		if a.ok != b.ok {
+			// numeric-keyed files come before non-numeric
+			return a.ok
+		}
+		// fallback to lexicographic compare of full base name
+		return a.base < b.base
+	})
+	files := make([]string, len(items))
+	for i, it := range items {
+		files[i] = it.path
+	}
+	return files, nil
 }

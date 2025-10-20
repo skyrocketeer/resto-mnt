@@ -111,8 +111,8 @@ func SetupRoutes(router *gin.RouterGroup, db *sql.DB, authMiddleware gin.Handler
 		admin.DELETE("/users/:id", adminHandler.DeleteUser)
 
 		// Restaurant settings management
-		admin.GET("/settings", settingsHandler.GetRestaurantSettings)
-		admin.PUT("/settings", settingsHandler.UpdateRestaurantSettings)
+		admin.GET("/settings", settingsHandler.GetSettings)
+		admin.PUT("/settings", settingsHandler.UpdateSettings)
 
 		// Advanced order management
 		admin.POST("/orders", orderHandler.CreateOrder)                   // Admins can create any type of order

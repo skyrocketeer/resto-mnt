@@ -2,32 +2,29 @@ package main
 
 import (
 	"log"
-	"os"
 
 	"pos-backend/internal/api"
 	"pos-backend/internal/database"
 	"pos-backend/internal/middleware"
+	"pos-backend/internal/util"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
-	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
 )
 
 func main() {
 	// Load environment variables
-	if err := godotenv.Load(".env"); err != nil {
-    log.Fatalf("Error loading .env file: %v", err)
-	}
+	util.LoadEnv()
 
 	// Database configuration
 	dbConfig := database.Config{
-		Host:     getEnv("DB_HOST", "postgres"),
-		Port:     getEnv("DB_PORT", "5432"),
-		User:     getEnv("DB_USER", "postgres"),
-		Password: getEnv("DB_PASSWORD", "postgres123"),
-		DBName:   getEnv("DB_NAME", "pos_system"),
-		SSLMode:  getEnv("DB_SSLMODE", "disable"),
+		Host:     util.FromEnv("DB_HOST", "postgres"),
+		Port:     util.FromEnv("DB_PORT", "5432"),
+		User:     util.FromEnv("DB_USER", "postgres"),
+		Password: util.FromEnv("DB_PASSWORD", ""),
+		DBName:   util.FromEnv("DB_NAME", "pos_system"),
+		SSLMode:  util.FromEnv("DB_SSLMODE", "disable"),
 	}
 
 	// Initialize database connection
@@ -52,7 +49,7 @@ func main() {
 	log.Println("Database migrations completed successfully")
 
 	// Initialize Gin router
-	gin.SetMode(getEnv("GIN_MODE", "release"))
+	gin.SetMode(util.FromEnv("GIN_MODE", "release"))
 	router := gin.New()
 
 	// Add middleware
@@ -78,17 +75,10 @@ func main() {
 	api.SetupRoutes(apiRoutes, db, authMiddleware)
 
 	// Start server
-	port := getEnv("PORT", "8080")
+	port := util.FromEnv("PORT", "8080")
 	log.Printf("Starting server on port %s", port)
 
 	if err := router.Run(":" + port); err != nil {
 		log.Fatalf("Failed to start server: %v", err)
 	}
-}
-
-func getEnv(key, defaultValue string) string {
-	if value := os.Getenv(key); value != "" {
-		return value
-	}
-	return defaultValue
 }
