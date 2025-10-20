@@ -1,16 +1,16 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { POSHeader } from './POSHeader'
+// import { POSHeader } from './POSHeader'
 import { CategorySidebar } from './CategorySidebar'
 import { ProductGrid } from './ProductGrid'
 import { OrderCart } from './OrderCart'
 import { TableSelectionModal } from './TableSelectionModal'
 // Clean imports for debugging
 import apiClient from '@/api/client'
-import type { User, Category, Product, CartItem, DiningTable } from '@/types'
+import type { UserInfo, Category, Product, CartItem, DiningTable } from '@/types'
 
 interface POSLayoutProps {
-  user: User
+  user: UserInfo
 }
 
 export function POSLayout({ user }: POSLayoutProps) {
@@ -142,7 +142,7 @@ export function POSLayout({ user }: POSLayoutProps) {
 
   return (
     <div className="h-screen flex flex-col bg-gray-50">
-            {/* Header - temporarily disabled for debugging */}
+      {/* Header - temporarily disabled for debugging */}
       <div className="bg-white border-b border-gray-200 p-4">
         <h1 className="text-xl font-bold">POS System - Debugging Mode</h1>
       </div>

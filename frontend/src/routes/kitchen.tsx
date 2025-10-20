@@ -2,14 +2,14 @@ import { createFileRoute, Navigate } from '@tanstack/react-router';
 import { useState, useEffect } from 'react';
 import apiClient from '@/api/client';
 import { NewEnhancedKitchenLayout } from '@/components/kitchen/NewEnhancedKitchenLayout';
-import type { User } from '@/types';
+import type { UserInfo } from '@/types';
 
 export const Route = createFileRoute('/kitchen')({
   component: KitchenPage,
 });
 
 function KitchenPage() {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<UserInfo | null>(null);
   const [isLoadingAuth, setIsLoadingAuth] = useState(true);
 
   useEffect(() => {

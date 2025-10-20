@@ -25,7 +25,7 @@ import { AdminMenuTable } from '@/components/admin/AdminMenuTable'
 import { AdminCategoriesTable } from '@/components/admin/AdminCategoriesTable'
 import { PaginationControlsComponent } from '@/components/ui/pagination-controls'
 import { usePagination } from '@/hooks/usePagination'
-import { ProductListSkeleton, CategoryListSkeleton, SearchingSkeleton } from '@/components/ui/skeletons'
+import { ProductListSkeleton, CategoryListSkeleton } from '@/components/ui/skeletons'
 import { InlineLoading } from '@/components/ui/loading-spinner'
 import type { Product, Category } from '@/types'
 

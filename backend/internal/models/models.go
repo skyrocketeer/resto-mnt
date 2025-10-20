@@ -206,3 +206,50 @@ type MetaData struct {
 	Total       int `json:"total"`
 	TotalPages  int `json:"total_pages"`
 }
+
+// RestaurantSettings represents restaurant configuration and information
+type Settings struct {
+	ID                    uuid.UUID `json:"id"`
+	Name                  string    `json:"name"`
+	Description           *string   `json:"description"`
+	Address               *string   `json:"address"`
+	Phone                 *string   `json:"phone"`
+	Email                 *string   `json:"email"`
+	Website               *string   `json:"website"`
+	LogoURL               *string   `json:"logo_url"`
+	Currency              string    `json:"currency"`
+	TaxRate               float64   `json:"tax_rate"`
+	ServiceChargeRate     float64   `json:"service_charge_rate"`
+	OpeningTime           *string   `json:"opening_time"`
+	ClosingTime           *string   `json:"closing_time"`
+	Timezone              string    `json:"timezone"`
+	DefaultOrderType      string    `json:"default_order_type"`
+	AutoPrintReceipts     bool      `json:"auto_print_receipts"`
+	AutoPrintKitchen      bool      `json:"auto_print_kitchen"`
+	ReceiptFooter         *string   `json:"receipt_footer"`
+	IsActive              bool      `json:"is_active"`
+	CreatedAt             time.Time `json:"created_at"`
+	UpdatedAt             time.Time `json:"updated_at"`
+}
+
+// UpdateRestaurantSettingsRequest represents the request to update restaurant settings
+type UpdateSettingsRequest struct {
+	Name                  *string  `json:"name"`
+	Description           *string  `json:"description"`
+	Address               *string  `json:"address"`
+	Phone                 *string  `json:"phone"`
+	Email                 *string  `json:"email"`
+	Website               *string  `json:"website"`
+	LogoURL               *string  `json:"logo_url"`
+	Currency              *string  `json:"currency"`
+	TaxRate               *float64 `json:"tax_rate"`
+	ServiceChargeRate     *float64 `json:"service_charge_rate"`
+	OpeningTime           *string  `json:"opening_time"`
+	ClosingTime           *string  `json:"closing_time"`
+	Timezone              *string  `json:"timezone"`
+	DefaultOrderType      *string  `json:"default_order_type"`
+	AutoPrintReceipts     *bool    `json:"auto_print_receipts"`
+	AutoPrintKitchen      *bool    `json:"auto_print_kitchen"`
+	ReceiptFooter         *string  `json:"receipt_footer"`
+	IsActive              *bool    `json:"is_active"`
+}

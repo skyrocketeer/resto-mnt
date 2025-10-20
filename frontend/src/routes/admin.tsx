@@ -1,7 +1,7 @@
 import { createFileRoute, Navigate, Outlet } from '@tanstack/react-router'
 import { useState, useEffect } from 'react'
 import apiClient from '@/api/client'
-import type { User } from '@/types'
+import type { UserInfo } from '@/types'
 import { AdminSidebar } from '@/components/admin/AdminSidebar'
 
 export const Route = createFileRoute('/admin')({
@@ -9,7 +9,7 @@ export const Route = createFileRoute('/admin')({
 })
 
 function AdminLayout() {
-  const [user, setUser] = useState<User | null>(null)
+  const [user, setUser] = useState<UserInfo | null>(null)
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {

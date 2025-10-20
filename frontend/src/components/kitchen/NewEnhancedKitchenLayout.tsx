@@ -17,10 +17,10 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import apiClient from '@/api/client';
-import type { User as UserType, Order } from '@/types';
+import type { UserInfo, Order, OrderStatus } from '@/types';
 
 interface NewEnhancedKitchenLayoutProps {
-  user: UserType;
+  user: UserInfo;
 }
 
 export function NewEnhancedKitchenLayout({ user }: NewEnhancedKitchenLayoutProps) {
@@ -34,7 +34,7 @@ export function NewEnhancedKitchenLayout({ user }: NewEnhancedKitchenLayoutProps
   const { data: ordersResponse, isLoading, refetch, error } = useQuery({
     queryKey: ['newEnhancedKitchenOrders'],
     queryFn: () => apiClient.getKitchenOrders('all'),
-    refetchInterval: autoRefresh ? 3000 : false,
+    refetchInterval: autoRefresh ? 300000 : false,
     select: (data) => data.data || [],
   });
 
@@ -43,7 +43,7 @@ export function NewEnhancedKitchenLayout({ user }: NewEnhancedKitchenLayoutProps
   // Filter orders to only show kitchen-relevant statuses
   // Orders disappear when served/completed by server staff
   const kitchenRelevantOrders = orders.filter((order: Order) => 
-    ['confirmed', 'preparing', 'ready'].includes(order.status)
+    ['confirmed', 'preparing', 'ready', 'pending'].includes(order.status)
   );
 
   // Group orders by status
@@ -51,6 +51,7 @@ export function NewEnhancedKitchenLayout({ user }: NewEnhancedKitchenLayoutProps
     confirmed: kitchenRelevantOrders.filter((order: Order) => order.status === 'confirmed'),
     preparing: kitchenRelevantOrders.filter((order: Order) => order.status === 'preparing'),
     ready: kitchenRelevantOrders.filter((order: Order) => order.status === 'ready'),
+    pending: kitchenRelevantOrders.filter((order: Order) => order.status === 'pending'),
   };
 
   // Calculate statistics based on kitchen-relevant orders only
@@ -74,7 +75,7 @@ export function NewEnhancedKitchenLayout({ user }: NewEnhancedKitchenLayoutProps
   };
 
   // Handle order status update
-  const handleOrderStatusUpdate = async (orderId: string, newStatus: string) => {
+  const handleOrderStatusUpdate = async (orderId: string, newStatus: OrderStatus) => {
     try {
       await apiClient.updateOrderStatus(orderId, newStatus);
       refetch();
@@ -669,7 +670,7 @@ export function NewEnhancedKitchenLayout({ user }: NewEnhancedKitchenLayoutProps
       {/* Main Content */}
       <div className="p-6">
         <Tabs value={selectedTab} onValueChange={setSelectedTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-2 mb-6">
+          <TabsList className="grid w-full h-full grid-cols-2 mb-6">
             <TabsTrigger value="active-orders" className="text-lg py-3">
               <ChefHat className="w-5 h-5 mr-2" />
               Kitchen Orders ({stats.total})

@@ -102,7 +102,9 @@ export function ServerInterface() {
     queryKey: ['active-orders'],
     queryFn: async () => {
       try {
-        const response = await apiClient.getOrders({ status: 'pending,confirmed,preparing,ready' })
+        const response = await apiClient.getOrders({ 
+          status: ['pending','confirmed','preparing','ready'] 
+        })
         return response.data || []
       } catch (error) {
         console.error('Failed to fetch active orders:', error)

@@ -4,7 +4,7 @@ import type {
   PaginatedResponse,
   LoginRequest,
   LoginResponse,
-  User,
+  UserInfo,
   Product,
   Category,
   DiningTable,
@@ -23,6 +23,7 @@ import type {
   OrderFilters,
   ProductFilters,
   TableFilters,
+  OrderStatus,
 } from '@/types';
 
 class APIClient {
@@ -62,8 +63,11 @@ class APIClient {
         if (error.response?.status === 401) {
           localStorage.removeItem('pos_token');
           localStorage.removeItem('pos_user');
-          // Redirect to login page
-          window.location.href = '/login';
+    
+          // SPA-friendly redirect
+          if (window.location.pathname !== '/login') {
+            window.location.href = '/login';
+          }
         }
         return Promise.reject(error);
       }
@@ -76,12 +80,9 @@ class APIClient {
       const response: AxiosResponse<T> = await this.client.request(config);
       return response.data;
     } catch (error) {
-      if (axios.isAxiosError(error)) {
-        throw new Error(error.response?.data?.message || error.message);
-      }
-      throw error;
+      throw error
     }
-  }
+  }  
 
   // Authentication endpoints
   async login(credentials: LoginRequest): Promise<APIResponse<LoginResponse>> {
@@ -99,7 +100,7 @@ class APIClient {
     });
   }
 
-  async getCurrentUser(): Promise<APIResponse<User>> {
+  async getCurrentUser(): Promise<APIResponse<UserInfo>> {
     return this.request({
       method: 'GET',
       url: '/auth/me',
@@ -289,6 +290,14 @@ class APIClient {
     });
   }
 
+  async createAdminOrder(order: CreateOrderRequest): Promise<APIResponse<Order>> {
+    return this.request({
+      method: 'POST',
+      url: '/admin/orders',
+      data: order,
+    });
+  }
+
   // Counter payment processing
   async processCounterPayment(orderId: string, payment: ProcessPaymentRequest): Promise<APIResponse<Payment>> {
     return this.request({
@@ -299,14 +308,30 @@ class APIClient {
   }
 
   // User management endpoints (Admin only)
-  async getUsers(): Promise<APIResponse<User[]>> {
+  async getUsers({
+    page = 1,
+    per_page = 10,
+    limit = 10,
+    search = '',
+  }: {
+    page?: number;
+    per_page?: number;
+    limit?: number;
+    search?: string;
+  }): Promise<APIResponse<UserInfo[]>> {
     return this.request({
       method: 'GET',
       url: '/admin/users',
+      params: {
+        page,
+        per_page,
+        limit,
+        search,
+      },
     });
   }
 
-  async createUser(userData: any): Promise<APIResponse<User>> {
+  async createUser(userData: any): Promise<APIResponse<UserInfo>> {
     return this.request({
       method: 'POST',
       url: '/admin/users',
@@ -314,7 +339,7 @@ class APIClient {
     });
   }
 
-  async updateUser(id: string, userData: any): Promise<APIResponse<User>> {
+  async updateUser(id: string, userData: any): Promise<APIResponse<UserInfo>> {
     return this.request({
       method: 'PATCH',
       url: `/admin/users/${id}`,

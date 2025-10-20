@@ -1,28 +1,21 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { UserMenu } from '@/components/ui/user-menu'
-// import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card' // Removed - not used in simplified layout
 import { 
   LayoutDashboard, 
   Users, 
   CreditCard, 
   ChefHat,
-  ShoppingCart,
   Settings,
-  User,
   Menu,
   BarChart3,
   UserCog,
-  Store,
-  LayoutGrid
+  Package,
+  LayoutGrid,
+  ChevronLeft
 } from 'lucide-react'
-import type { User as UserType } from '@/types'
-import apiClient from '@/api/client'
-
-// Import components for different sections
+import type { UserInfo } from '@/types'
+import { useScreenSizeWithSidebar } from '@/hooks/useScreenSize'
 import { AdminDashboard } from './AdminDashboard'
-import { POSLayout } from '@/components/pos/POSLayout'
 import { ServerInterface } from '@/components/server/ServerInterface'
 import { CounterInterface } from '@/components/counter/CounterInterface'
 import { NewEnhancedKitchenLayout } from '@/components/kitchen/NewEnhancedKitchenLayout'
@@ -35,7 +28,7 @@ import { AdminTableManagement } from './AdminTableManagement'
 import { AdminReports } from './AdminReports'
 
 interface AdminLayoutProps {
-  user: UserType
+  user: UserInfo
 }
 
 const adminSections = [
@@ -98,27 +91,7 @@ const adminSections = [
 
 export function AdminLayout({ user }: AdminLayoutProps) {
   const [currentSection, setCurrentSection] = useState('dashboard')
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
-  const [isMobile, setIsMobile] = useState(false)
-  const [isTablet, setIsTablet] = useState(false)
-
-  // Responsive breakpoint detection
-  useEffect(() => {
-    const checkScreenSize = () => {
-      const width = window.innerWidth
-      setIsMobile(width < 768) // md breakpoint
-      setIsTablet(width >= 768 && width < 1024) // md to lg breakpoint
-      
-      // Auto-collapse sidebar on mobile and tablet for better UX
-      if (width < 1024) {
-        setSidebarCollapsed(true)
-      }
-    }
-
-    checkScreenSize()
-    window.addEventListener('resize', checkScreenSize)
-    return () => window.removeEventListener('resize', checkScreenSize)
-  }, [])
+  const { isMobile, isTablet, sidebarCollapsed, setSidebarCollapsed } = useScreenSizeWithSidebar()
 
   const renderCurrentSection = () => {
     switch (currentSection) {
@@ -170,27 +143,20 @@ export function AdminLayout({ user }: AdminLayoutProps) {
           : `relative ${sidebarCollapsed ? 'w-16' : 'w-64'}`
       }`}>
         {/* Header */}
-        <div className="p-4">
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center gap-3">
-              <div className={`bg-primary rounded-lg flex items-center justify-center ${
+        <div className="px-4 py-3">
+          <div className="flex items-center justify-between">
+              {/* <div className={`bg-primary rounded-lg flex items-center justify-center ${
                 (isMobile || isTablet) ? 'w-10 h-10' : 'w-8 h-8'
               }`}>
                 <ShoppingCart className={`text-primary-foreground ${
                   (isMobile || isTablet) ? 'w-6 h-6' : 'w-5 h-5'
                 }`} />
-              </div>
-              {(!sidebarCollapsed || (isMobile || isTablet)) && (
-                <div>
-                  <span className={`font-bold ${
-                    (isMobile || isTablet) ? 'text-2xl' : 'text-xl'
-                  }`}>POS Admin</span>
-                  <p className={`text-muted-foreground ${
-                    (isMobile || isTablet) ? 'text-sm' : 'text-xs'
-                  }`}>Restaurant Management</p>
-                </div>
-              )}
-            </div>
+              </div> */}
+            {(!sidebarCollapsed || (isMobile || isTablet)) && (
+              <div className={`px-4 font-bold ${
+                (isMobile || isTablet) ? 'text-2xl' : 'text-xl'
+              }`}>Menu</div>
+            )}
             
             {/* Toggle Button - Larger on tablet */}
             <Button
@@ -199,13 +165,16 @@ export function AdminLayout({ user }: AdminLayoutProps) {
               onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
               className={isTablet ? "p-2 h-10 w-10" : "p-1 h-8 w-8"}
             >
-              <Menu className={isTablet ? "w-5 h-5" : "w-4 h-4"} />
+              {sidebarCollapsed ?
+                <Menu className={isTablet ? "w-5 h-5" : "w-4 h-4"} /> :
+                <ChevronLeft className="h-4 w-4" />
+              }
             </Button>
           </div>
         </div>
 
         {/* Navigation */}
-        <nav className="flex flex-col flex-1 px-4 pb-4">
+        <nav className="flex flex-col flex-1 items-center px-4 pb-4">
             <div className={isTablet ? "space-y-3" : "space-y-2"}>
               {adminSections.map((section) => (
                 <Button
@@ -239,13 +208,13 @@ export function AdminLayout({ user }: AdminLayoutProps) {
             <div className="flex-1"></div>
             
             {/* User Menu */}
-            <div className={isTablet ? 'mt-6' : 'mt-4'}>
+            {/* <div className={isTablet ? 'mt-6' : 'mt-4'}>
               <UserMenu 
                 user={user} 
                 collapsed={sidebarCollapsed && !isMobile && !isTablet}
                 size={isTablet ? 'lg' : 'md'}
               />
-            </div>
+            </div> */}
           </nav>
       </div>
 

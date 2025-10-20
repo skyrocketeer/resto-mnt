@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react'
-import { Link, useRouter, useLocation } from '@tanstack/react-router'
+import { Link, useLocation } from '@tanstack/react-router'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
 import { UserMenu } from '@/components/ui/user-menu'
 import { 
   LayoutDashboard, 
@@ -9,7 +8,6 @@ import {
   CreditCard, 
   ChefHat,
   Settings,
-  User,
   Menu,
   BarChart3,
   UserCog,
@@ -17,11 +15,10 @@ import {
   ChevronLeft,
   ChevronRight
 } from 'lucide-react'
-import type { User as UserType } from '@/types'
-import apiClient from '@/api/client'
+import type { UserInfo } from '@/types'
 
 interface AdminSidebarProps {
-  user: UserType
+  user: UserInfo
 }
 
 const adminSections = [
@@ -94,7 +91,6 @@ export function AdminSidebar({ user }: AdminSidebarProps) {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [isMobile, setIsMobile] = useState(false)
   const [isTablet, setIsTablet] = useState(false)
-  const router = useRouter()
   const location = useLocation()
 
   // Responsive checks
@@ -144,12 +140,10 @@ export function AdminSidebar({ user }: AdminSidebarProps) {
                   <LayoutDashboard className="w-5 h-5 text-primary-foreground" />
                 </div>
                 <div>
-                  <h1 className="font-bold text-foreground">Admin Panel</h1>
-                  <p className="text-xs text-muted-foreground">Restaurant Management</p>
+                  <h1 className="font-bold text-foreground">Menu</h1>
                 </div>
               </div>
             )}
-            
             {/* Collapse/Expand Button */}
             <Button
               variant="ghost"
@@ -190,14 +184,13 @@ export function AdminSidebar({ user }: AdminSidebarProps) {
           ))}
         </div>
 
-        {/* User Menu */}
-        <div className="p-4 border-t border-border">
+        {/* <div className="p-4 border-t border-border">
           <UserMenu 
             user={user} 
             collapsed={sidebarCollapsed && !isMobile && !isTablet}
             size={isTablet ? 'lg' : 'md'}
           />
-        </div>
+        </div> */}
       </div>
     </>
   )

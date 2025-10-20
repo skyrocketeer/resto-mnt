@@ -16,8 +16,8 @@ import (
 
 func main() {
 	// Load environment variables
-	if err := godotenv.Load(); err != nil {
-		log.Println("No .env file found, using environment variables")
+	if err := godotenv.Load(".env"); err != nil {
+    log.Fatalf("Error loading .env file: %v", err)
 	}
 
 	// Database configuration
@@ -43,6 +43,13 @@ func main() {
 	}
 
 	log.Println("Successfully connected to database")
+
+	// Run database migrations
+	log.Println("Running database migrations...")
+	if err := database.RunMigrations(db); err != nil {
+		log.Fatalf("Failed to run migrations: %v", err)
+	}
+	log.Println("Database migrations completed successfully")
 
 	// Initialize Gin router
 	gin.SetMode(getEnv("GIN_MODE", "release"))

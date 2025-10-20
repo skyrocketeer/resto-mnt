@@ -32,8 +32,8 @@ export function ReadyOrdersNotification({
   // Fetch ready orders for pickup
   const { data: ordersResponse, refetch } = useQuery({
     queryKey: ['counterReadyOrders'],
-    queryFn: () => apiClient.getOrders({ status: 'ready' }),
-    refetchInterval: autoRefresh ? 2000 : false, // 2-second refresh for real-time
+    queryFn: () => apiClient.getOrders({ status: ['ready'] }),
+    refetchInterval: autoRefresh ? 2000000 : false, // 2-second refresh for real-time
     select: (data) => data.data || [],
   });
 

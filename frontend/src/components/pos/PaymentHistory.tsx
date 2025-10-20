@@ -44,9 +44,9 @@ export function PaymentHistory({ isOpen, onClose }: PaymentHistoryProps) {
     queryFn: async () => {
       // Note: This is a simplified approach. In practice, you'd have a dedicated endpoint for payment history
       const ordersResponse = await apiClient.getOrders({ 
-        status: undefined,
-        limit: 100,
-        offset: 0 
+        status: [],
+        size: 100,
+        page: 0 
       })
       
       if (!ordersResponse.success) {
@@ -322,11 +322,16 @@ export function PaymentHistory({ isOpen, onClose }: PaymentHistoryProps) {
           }}
           order={selectedPayment.order}
           payment={selectedPayment}
-          items={selectedPayment.order.order_items?.map(item => ({
+          items={selectedPayment.order.items?.map(item => ({
             product: {
               id: item.product_id,
-              name: item.product_name || 'Unknown Product',
-              price: item.unit_price
+              name: item.product_name || 'Product',
+              price: item.unit_price,
+              is_available: true, // Placeholder value
+              preparation_time: 0, // Placeholder value
+              sort_order: 0, // Placeholder value
+              created_at: new Date().toISOString(), // Placeholder value
+              updated_at: new Date().toISOString() // Placeholder value
             },
             quantity: item.quantity
           })) || []}

@@ -33,7 +33,7 @@ export function TakeawayBoard({
     queryKey: ['takeawayOrders'],
     queryFn: () => apiClient.getOrders({
       order_type: 'takeout',
-      status: 'ready',
+      status: ['ready'],
     }),
     refetchInterval: autoRefresh ? 2000 : false, // 2-second refresh for real-time updates
     select: (data) => data.data || [],

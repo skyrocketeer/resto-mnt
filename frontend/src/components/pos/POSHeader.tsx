@@ -3,8 +3,8 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { 
-  Store, 
-  User as UserIcon, 
+  Store,
+  History,
   LogOut, 
   Settings,
   UtensilsCrossed,
@@ -14,10 +14,10 @@ import {
   ChefHat
 } from 'lucide-react'
 import apiClient from '@/api/client'
-import type { User, DiningTable } from '@/types'
+import type { UserInfo, DiningTable } from '@/types'
 
 interface POSHeaderProps {
-  user: User
+  user: UserInfo
   selectedTable: DiningTable | null
   orderType: 'dine_in' | 'takeout' | 'delivery'
   onOrderTypeChange: (type: 'dine_in' | 'takeout' | 'delivery') => void

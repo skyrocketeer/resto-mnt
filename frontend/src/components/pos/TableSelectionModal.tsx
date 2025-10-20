@@ -15,13 +15,15 @@ import type { DiningTable } from '@/types'
 
 interface TableSelectionModalProps {
   tables: DiningTable[]
+  isOpen: boolean
   selectedTable: DiningTable | null
   onTableSelect: (table: DiningTable) => void
   onClose: () => void
 }
 
 export function TableSelectionModal({ 
-  tables, 
+  tables,
+  isOpen,
   selectedTable, 
   onTableSelect, 
   onClose 
@@ -68,7 +70,7 @@ export function TableSelectionModal({
     return table.is_occupied ? 'Occupied' : 'Available'
   }
 
-  return (
+  return isOpen && (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[80vh] flex flex-col">
         {/* Header */}

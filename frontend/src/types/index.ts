@@ -21,7 +21,7 @@ export interface MetaData {
 }
 
 // User Types
-export interface User {
+export interface UserInfo {
   id: string;
   username: string;
   email: string;
@@ -40,7 +40,7 @@ export interface LoginRequest {
 
 export interface LoginResponse {
   token: string;
-  user: User;
+  user: UserInfo;
 }
 
 // Category Types
@@ -103,7 +103,7 @@ export interface Order {
   served_at?: string;
   completed_at?: string;
   table?: DiningTable;
-  user?: User;
+  user?: UserInfo;
   items?: OrderItem[];
   payments?: Payment[];
 }
@@ -112,6 +112,7 @@ export interface OrderItem {
   id: string;
   order_id: string;
   product_id: string;
+  product_name: string;
   quantity: number;
   unit_price: number;
   total_price: number;
@@ -120,7 +121,7 @@ export interface OrderItem {
   created_at: string;
   updated_at: string;
   product?: Product;
-  notes?: string; // Alternative field name for special instructions
+  notes?: string; 
 }
 
 export interface CreateOrderRequest {
@@ -137,8 +138,17 @@ export interface CreateOrderItem {
   special_instructions?: string;
 }
 
+export type OrderStatus =
+  | 'pending'
+  | 'confirmed'
+  | 'preparing'
+  | 'ready'
+  | 'served'
+  | 'completed'
+  | 'cancelled';
+
 export interface UpdateOrderStatusRequest {
-  status: 'pending' | 'confirmed' | 'preparing' | 'ready' | 'served' | 'completed' | 'cancelled';
+  status: OrderStatus;
   notes?: string;
 }
 
@@ -153,7 +163,7 @@ export interface Payment {
   processed_by?: string;
   processed_at?: string;
   created_at: string;
-  processed_by_user?: User;
+  processed_by_user?: UserInfo;
 }
 
 export interface ProcessPaymentRequest {
@@ -238,10 +248,10 @@ export interface LocationStats {
 
 // Filter and Query Types
 export interface OrderFilters {
-  status?: string;
-  order_type?: string;
+  status?: OrderStatus[];
+  order_type?: 'dine_in' | 'takeout' | 'delivery';
   page?: number;
-  per_page?: number;
+  size?: number;
 }
 
 export interface ProductFilters {

@@ -23,7 +23,7 @@ import { PaginationControlsComponent } from '@/components/ui/pagination-controls
 import { usePagination } from '@/hooks/usePagination'
 import { UserListSkeleton, SearchingSkeleton } from '@/components/ui/skeletons'
 import { PageLoading, InlineLoading } from '@/components/ui/loading-spinner'
-import type { User } from '@/types'
+import type { UserInfo } from '@/types'
 
 type DisplayMode = 'table' | 'cards'
 
@@ -32,7 +32,7 @@ export function AdminStaffManagement() {
   const [searchTerm, setSearchTerm] = useState('')
   const [debouncedSearch, setDebouncedSearch] = useState('')
   const [showCreateForm, setShowCreateForm] = useState(false)
-  const [editingUser, setEditingUser] = useState<User | null>(null)
+  const [editingUser, setEditingUser] = useState<UserInfo | null>(null)
   const [isSearching, setIsSearching] = useState(false)
 
   const queryClient = useQueryClient()
@@ -68,7 +68,7 @@ export function AdminStaffManagement() {
   })
 
   // Extract data and pagination info
-  const users = Array.isArray(usersData) ? usersData : (usersData as any)?.data || []
+  const users = usersData != null && Array.isArray(usersData.users) ? usersData.users : []
   const paginationInfo = (usersData as any)?.pagination || { total: 0 }
 
   // Delete user mutation (keep existing functionality)  
@@ -93,7 +93,7 @@ export function AdminStaffManagement() {
     setEditingUser(null)
   }
 
-  const handleDeleteUser = (user: User) => {
+  const handleDeleteUser = (user: UserInfo) => {
     const displayName = `${user.first_name} ${user.last_name}`
     if (confirm(`Are you sure you want to delete ${displayName}?`)) {
       deleteUserMutation.mutate({ 
@@ -244,7 +244,7 @@ export function AdminStaffManagement() {
           </Card>
         ) : (
           <div className="grid gap-4">
-            {filteredUsers.map((user: User) => (
+            {filteredUsers.map((user: UserInfo) => (
               <Card key={user.id} className="hover:shadow-md transition-shadow">
                 <CardContent className="pt-6">
                   <div className="flex items-center justify-between">

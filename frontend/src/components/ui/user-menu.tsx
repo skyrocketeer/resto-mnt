@@ -1,5 +1,4 @@
-import * as React from "react"
-import { User, Settings, Bell, LogOut } from "lucide-react"
+import { User, Settings, Bell, LogOut, CreditCard, Users, ChefHat, LayoutDashboard } from "lucide-react"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -11,15 +10,64 @@ import {
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import apiClient from "@/api/client"
-import type { User as UserType } from "@/types"
+import type { UserInfo } from "@/types"
 
 interface UserMenuProps {
-  user: UserType
+  user: UserInfo
   collapsed?: boolean
   size?: "sm" | "md" | "lg"
 }
 
 export function UserMenu({ user, collapsed = false, size = "md" }: UserMenuProps) {
+  const getRoleConfig = (role: string) => {
+    switch (role) {
+      case 'admin':
+        return {
+          title: 'Administrator',
+          color: 'bg-red-100 text-red-800',
+          icon: <Settings className="w-4 h-4" />,
+          description: 'Full system access and management'
+        }
+      case 'manager':
+        return {
+          title: 'Manager',
+          color: 'bg-purple-100 text-purple-800',
+          icon: <LayoutDashboard className="w-4 h-4" />,
+          description: 'Operations management and reporting'
+        }
+      case 'server':
+        return {
+          title: 'Server',
+          color: 'bg-blue-100 text-blue-800',
+          icon: <Users className="w-4 h-4" />,
+          description: 'Dine-in order creation'
+        }
+      case 'counter':
+        return {
+          title: 'Counter/Checkout',
+          color: 'bg-green-100 text-green-800',
+          icon: <CreditCard className="w-4 h-4" />,
+          description: 'Order creation and payment processing'
+        }
+      case 'kitchen':
+        return {
+          title: 'Kitchen Staff',
+          color: 'bg-orange-100 text-orange-800',
+          icon: <ChefHat className="w-4 h-4" />,
+          description: 'Order preparation and status updates'
+        }
+      default:
+        return {
+          title: 'Staff',
+          color: 'bg-gray-100 text-gray-800',
+          icon: <User className="w-4 h-4" />,
+          description: 'General access'
+        }
+    }
+  }
+
+  const roleConfig = getRoleConfig(user.role)
+
   const handleLogout = () => {
     apiClient.clearAuth()
     window.location.href = '/login'
@@ -94,7 +142,7 @@ export function UserMenu({ user, collapsed = false, size = "md" }: UserMenuProps
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" className="w-full justify-start p-3 h-auto bg-muted/30 rounded-lg hover:bg-muted/50 transition-colors">
+        <div className="w-full justify-start p-3 h-auto rounded-lg">
           <div className="flex items-center gap-3 w-full">
             <div className={`bg-primary rounded-full flex items-center justify-center ${currentSize.avatar}`}>
               <User className={`text-primary-foreground ${currentSize.icon}`} />
@@ -107,11 +155,15 @@ export function UserMenu({ user, collapsed = false, size = "md" }: UserMenuProps
                 {user.email}
               </p>
             </div>
-            <Badge variant="outline" className={currentSize.text}>
-              {user.role.toUpperCase()}
+            <Badge
+              className={`${roleConfig.color} font-medium hover:text-white`}
+              onClick={() => { }}
+            >
+              {roleConfig.icon}
+              <span className="ml-1">{roleConfig.title}</span>
             </Badge>
           </div>
-        </Button>
+        </div>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-56">
         <DropdownMenuLabel className="font-normal">
@@ -121,22 +173,17 @@ export function UserMenu({ user, collapsed = false, size = "md" }: UserMenuProps
           </div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
-        <DropdownMenuItem>
+        <DropdownMenuItem className="cursor-pointer">
           <User className="mr-2 h-4 w-4" />
           <span>Profile</span>
         </DropdownMenuItem>
-        <DropdownMenuItem>
+        <DropdownMenuItem className="cursor-pointer">
           <Settings className="mr-2 h-4 w-4" />
           <span>Settings</span>
         </DropdownMenuItem>
-        <DropdownMenuItem>
+        <DropdownMenuItem className="cursor-pointer">
           <Bell className="mr-2 h-4 w-4" />
           <span>Notifications</span>
-        </DropdownMenuItem>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={handleLogout} className="text-red-600 focus:text-red-600">
-          <LogOut className="mr-2 h-4 w-4" />
-          <span>Log out</span>
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

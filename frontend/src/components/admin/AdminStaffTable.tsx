@@ -26,14 +26,13 @@ import {
   Shield,
   Mail,
   Calendar,
-  MoreHorizontal
 } from "lucide-react"
-import type { User } from "@/types"
+import type { UserInfo } from "@/types"
 
 interface AdminStaffTableProps {
-  data: User[]
-  onEdit: (user: User) => void
-  onDelete: (user: User) => void
+  data: UserInfo[]
+  onEdit: (user: UserInfo) => void
+  onDelete: (user: UserInfo) => void
   isLoading?: boolean
 }
 
@@ -56,7 +55,7 @@ export function AdminStaffTable({
     return colors[role.toLowerCase()] || 'bg-gray-100 text-gray-800'
   }
 
-  const columns: ColumnDef<User>[] = [
+  const columns: ColumnDef<UserInfo>[] = [
     {
       accessorKey: "first_name",
       header: ({ column }) => {
