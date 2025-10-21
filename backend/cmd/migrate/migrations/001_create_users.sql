@@ -8,15 +8,13 @@ CREATE TABLE IF NOT EXISTS users (
     password_hash VARCHAR(255) NOT NULL,
     first_name VARCHAR(20) NOT NULL,
     last_name VARCHAR(20) NOT NULL,
-    role VARCHAR(10) NOT NULL CHECK (
-        role IN (
-            'admin',
-            'manager',
-            'server',
-            'counter',
-            'kitchen'
-        )
-    ),
+    role VARCHAR(10) NOT NULL CHECK (role IN (
+        'admin',
+        'manager',
+        'server',
+        'counter',
+        'kitchen'
+    )),
     is_active BOOLEAN DEFAULT true,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP

@@ -61,20 +61,20 @@ INSERT INTO products (category_id, name, description, price, sku, preparation_ti
 
 -- Insert dining tables
 INSERT INTO dining_tables (table_number, seating_capacity, location) VALUES
-('T01', 2, 'Main Floor'),
-('T02', 4, 'Main Floor'),
-('T03', 4, 'Main Floor'),
-('T04', 6, 'Main Floor'),
-('T05', 2, 'Main Floor'),
-('T06', 4, 'Window Side'),
-('T07', 4, 'Window Side'),
-('T08', 8, 'Private Room'),
-('T09', 2, 'Patio'),
-('T10', 4, 'Patio'),
-('BAR01', 1, 'Bar Counter'),
-('BAR02', 1, 'Bar Counter'),
-('BAR03', 1, 'Bar Counter'),
-('TAKEOUT', 1, 'Takeout Counter');
+('T01', 2, 'main_floor'),
+('T02', 4, 'outdoor'),
+('T03', 4, 'main_floor'),
+('T04', 6, 'main_floor'),
+('T05', 2, 'outdoor'),
+('T06', 4, 'window_side'),
+('T07', 4, 'window_side'),
+('T08', 8, 'private_room'),
+('T09', 2, 'patio'),
+('T10', 4, 'patio'),
+('BAR01', 1, 'bar_counter'),
+('BAR02', 1, 'bar_counter'),
+('BAR03', 1, 'bar_counter'),
+('TAKEOUT', 1, 'takeout_counter');
 
 -- Create some sample orders for testing (modified order_type to fit VARCHAR(20))
 INSERT INTO orders (order_number, table_id, user_id, order_type, status, subtotal, tax_amount, total_amount) VALUES

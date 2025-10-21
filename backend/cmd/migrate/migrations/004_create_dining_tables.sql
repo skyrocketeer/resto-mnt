@@ -1,9 +1,9 @@
 -- +migrate Up
 CREATE TABLE IF NOT EXISTS dining_tables (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4 (),
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     table_number VARCHAR(20) UNIQUE NOT NULL,
     seating_capacity INTEGER DEFAULT 4,
-    status VARCHAR(20) DEFAULT 'available' CHECK (status IN ('available', 'occupied', 'reserved', 'out_of_service')),
+    status VARCHAR(20) CHECK (status IN ('available', 'occupied', 'reserved', 'out_of_service')) DEFAULT 'available',
     location VARCHAR(20) CHECK (location IN ('main_floor', 'patio', 'private_room', 'outdoor', 'bar_counter', 'takeout_counter', 'window_side')) NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP

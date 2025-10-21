@@ -130,7 +130,6 @@ func parseMigrationSQL(content string) (string, string) {
 	downSQL := ""
 	if len(parts) > 1 {
 		downSQL = strings.TrimSpace(parts[1])
-		log.Printf("Down SQL found: %s", downSQL)
 	}
 
 	return upSQL, downSQL
