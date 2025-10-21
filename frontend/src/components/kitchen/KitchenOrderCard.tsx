@@ -2,12 +2,12 @@ import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import type { Order, OrderItem } from '@/types'
+import type { Order, OrderItem, OrderStatus } from '@/types'
 
 interface KitchenOrderCardProps {
   order: Order
-  onStatusUpdate: (orderId: string, newStatus: string) => void
-  onItemStatusUpdate: (orderId: string, itemId: string, newStatus: string) => void
+  onStatusUpdate: (orderId: string, newStatus: OrderStatus) => void
+  onItemStatusUpdate: (orderId: string, itemId: string, newStatus: OrderStatus) => void
 }
 
 export function KitchenOrderCard({ order, onStatusUpdate, onItemStatusUpdate }: KitchenOrderCardProps) {
@@ -221,7 +221,7 @@ export function KitchenOrderCard({ order, onStatusUpdate, onItemStatusUpdate }: 
         {/* Action Buttons */}
         <div className="flex space-x-2">
           <Button
-            onClick={() => onStatusUpdate(order.id, statusInfo.nextStatus)}
+            onClick={() => onStatusUpdate(order.id, statusInfo.nextStatus as OrderStatus)}
             className="flex-1"
             size="sm"
           >

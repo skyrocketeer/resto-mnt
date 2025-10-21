@@ -1,14 +1,14 @@
 -- +migrate Up
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
-CREATE TABLE users (
+CREATE TABLE IF NOT EXISTS users (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4 (),
-    username VARCHAR(50) UNIQUE NOT NULL,
-    email VARCHAR(100) UNIQUE NOT NULL,
+    username VARCHAR(20) UNIQUE NOT NULL,
+    email VARCHAR(30) UNIQUE NOT NULL,
     password_hash VARCHAR(255) NOT NULL,
-    first_name VARCHAR(50) NOT NULL,
-    last_name VARCHAR(50) NOT NULL,
-    role VARCHAR(20) NOT NULL CHECK (
+    first_name VARCHAR(20) NOT NULL,
+    last_name VARCHAR(20) NOT NULL,
+    role VARCHAR(10) NOT NULL CHECK (
         role IN (
             'admin',
             'manager',
@@ -18,12 +18,8 @@ CREATE TABLE users (
         )
     ),
     is_active BOOLEAN DEFAULT true,
-    created_at TIMESTAMP
-    WITH
-        TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP
-    WITH
-        TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Create indexes for better performance

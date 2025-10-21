@@ -78,6 +78,7 @@ export interface DiningTable {
   id: string;
   table_number: string;
   seating_capacity: number;
+  status: 'available' | 'occupied' | 'reserved' | 'out_of_service';
   location?: string;
   is_occupied: boolean;
   created_at: string;
@@ -92,7 +93,7 @@ export interface Order {
   user_id?: string;
   customer_name?: string;
   order_type: 'dine_in' | 'takeout' | 'delivery';
-  status: 'pending' | 'confirmed' | 'preparing' | 'ready' | 'served' | 'completed' | 'cancelled';
+  status: OrderStatus;
   subtotal: number;
   tax_amount: number;
   discount_amount: number;

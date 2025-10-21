@@ -1,3 +1,4 @@
+import { SelectOption } from '@/components/forms/FormComponents'
 import { type ClassValue, clsx } from 'clsx'
 import { twMerge } from 'tailwind-merge'
 
@@ -108,5 +109,27 @@ export function debounce<T extends (...args: any[]) => any>(
   return (...args: Parameters<T>) => {
     if (timeout) clearTimeout(timeout)
     timeout = setTimeout(() => func(...args), wait)
+  }
+}
+
+export function getOptions(options: string[]): SelectOption[] {
+  return options.map(value => ({
+    value,
+    label: value.replace('-', ' ').replace('_', ' ').replace(/\b\w/g, char => char.toUpperCase())
+  }))
+}
+
+export function getTableStatusColor(status: string): string {
+  switch (status) {
+    case 'available':
+      return 'bg-green-100 text-green-800'
+    case 'occupied':
+      return 'bg-red-100 text-red-800'
+    case 'reserved':
+      return 'bg-yellow-100 text-yellow-800'
+    case 'out_of_service':
+      return 'bg-gray-100 text-gray-800'
+    default:
+      return 'bg-gray-100 text-gray-800'
   }
 }

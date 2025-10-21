@@ -21,11 +21,9 @@ func NewTableHandler(db *sql.DB) *TableHandler {
 // GetTables retrieves all dining tables
 func (h *TableHandler) GetTables(c *gin.Context) {
 	location := c.Query("location")
-	occupiedOnly := c.Query("occupied_only") == "true"
-	availableOnly := c.Query("available_only") == "true"
 
 	queryBuilder := `
-		SELECT t.id, t.table_number, t.seating_capacity, t.location, t.is_occupied, 
+		SELECT t.id, t.table_number, t.seating_capacity, t.location, 
 		       t.created_at, t.updated_at,
 		       o.id as order_id, o.order_number, o.customer_name, o.status as order_status,
 		       o.created_at as order_created_at, o.total_amount
@@ -41,12 +39,6 @@ func (h *TableHandler) GetTables(c *gin.Context) {
 		argIndex++
 		queryBuilder += ` AND t.location ILIKE $` + string(rune(argIndex+'0'))
 		args = append(args, "%"+location+"%")
-	}
-
-	if occupiedOnly {
-		queryBuilder += ` AND t.is_occupied = true`
-	} else if availableOnly {
-		queryBuilder += ` AND t.is_occupied = false`
 	}
 
 	queryBuilder += ` ORDER BY t.table_number ASC`
@@ -207,7 +199,7 @@ func (h *TableHandler) GetTable(c *gin.Context) {
 // GetTablesByLocation retrieves tables grouped by location
 func (h *TableHandler) GetTablesByLocation(c *gin.Context) {
 	query := `
-		SELECT t.id, t.table_number, t.seating_capacity, t.location, t.is_occupied, 
+		SELECT t.id, t.table_number, t.seating_capacity, t.location, t.status, 
 		       t.created_at, t.updated_at,
 		       o.id as order_id, o.order_number, o.customer_name, o.status as order_status
 		FROM dining_tables t
@@ -344,4 +336,3 @@ func (h *TableHandler) GetTableStatus(c *gin.Context) {
 		Data:    response,
 	})
 }
-

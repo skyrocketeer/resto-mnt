@@ -52,15 +52,15 @@ func (h *AdminHandler) GetAdminUsers(c *gin.Context) {
 	var users []map[string]interface{}
 	for rows.Next() {
 		var (
-			id         string
-			username   string
-			email      string
-			firstName  *string
-			lastName   *string
-			role       string
-			isActive   bool
-			createdAt  time.Time
-			updatedAt  time.Time
+			id        string
+			username  string
+			email     string
+			firstName *string
+			lastName  *string
+			role      string
+			isActive  bool
+			createdAt time.Time
+			updatedAt time.Time
 		)
 		err := rows.Scan(
 			&id, &username, &email, &firstName, &lastName, &role, &isActive, &createdAt, &updatedAt,
@@ -73,7 +73,7 @@ func (h *AdminHandler) GetAdminUsers(c *gin.Context) {
 			})
 			return
 		}
-		
+
 		user := map[string]interface{}{
 			"id":         id,
 			"username":   username,
@@ -94,9 +94,9 @@ func (h *AdminHandler) GetAdminUsers(c *gin.Context) {
 		"data": gin.H{
 			"users": users,
 			"pagination": gin.H{
-				"page":       page,
-				"limit":      limit,
-				"total":      totalCount,
+				"page":        page,
+				"limit":       limit,
+				"total":       totalCount,
 				"total_pages": (totalCount + limit - 1) / limit,
 			},
 		},
@@ -155,7 +155,7 @@ func (h *AdminHandler) GetAdminCategories(c *gin.Context) {
 			})
 			return
 		}
-		
+
 		category := map[string]interface{}{
 			"id":          id,
 			"name":        name,
@@ -175,9 +175,9 @@ func (h *AdminHandler) GetAdminCategories(c *gin.Context) {
 		"data": gin.H{
 			"categories": categories,
 			"pagination": gin.H{
-				"page":       page,
-				"limit":      limit,
-				"total":      totalCount,
+				"page":        page,
+				"limit":       limit,
+				"total":       totalCount,
 				"total_pages": (totalCount + limit - 1) / limit,
 			},
 		},
@@ -216,14 +216,14 @@ func (h *AdminHandler) GetAdminTables(c *gin.Context) {
 	var tables []map[string]interface{}
 	for rows.Next() {
 		var (
-			id         string
+			id          string
 			tableNumber string
-			capacity   int
-			location   *string
-			isOccupied bool
-			isActive   bool
-			createdAt  time.Time
-			updatedAt  time.Time
+			capacity    int
+			location    *string
+			isOccupied  bool
+			isActive    bool
+			createdAt   time.Time
+			updatedAt   time.Time
 		)
 		err := rows.Scan(
 			&id, &tableNumber, &capacity, &location, &isOccupied, &isActive, &createdAt, &updatedAt,
@@ -236,7 +236,7 @@ func (h *AdminHandler) GetAdminTables(c *gin.Context) {
 			})
 			return
 		}
-		
+
 		table := map[string]interface{}{
 			"id":           id,
 			"table_number": tableNumber,
@@ -256,9 +256,9 @@ func (h *AdminHandler) GetAdminTables(c *gin.Context) {
 		"data": gin.H{
 			"tables": tables,
 			"pagination": gin.H{
-				"page":       page,
-				"limit":      limit,
-				"total":      totalCount,
+				"page":        page,
+				"limit":       limit,
+				"total":       totalCount,
 				"total_pages": (totalCount + limit - 1) / limit,
 			},
 		},
@@ -658,9 +658,10 @@ func (h *AdminHandler) DeleteProduct(c *gin.Context) {
 // CreateTable creates a new table
 func (h *AdminHandler) CreateTable(c *gin.Context) {
 	var req struct {
-		TableNumber string  `json:"table_number" binding:"required"`
-		Capacity    int     `json:"capacity" binding:"required"`
-		Location    *string `json:"location"`
+		TableNumber string `json:"table_number" binding:"required"`
+		Capacity    int    `json:"seat_capacity" binding:"required"`
+		Location    string `json:"location" binding:"required"`
+		Status      string `json:"status" binding:"required"`
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -672,12 +673,20 @@ func (h *AdminHandler) CreateTable(c *gin.Context) {
 		return
 	}
 
+	if req.Capacity <= 0 || req.Capacity > 20 {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"message": "Seat capacity must be between 1 and 20.",
+		})
+		return
+	}
+
 	var tableID string
 	err := h.db.QueryRow(`
-		INSERT INTO dining_tables (table_number, capacity, location)
-		VALUES ($1, $2, $3)
+		INSERT INTO dining_tables (table_number, seating_capacity, location, status)
+		VALUES ($1, $2, $3, $4)
 		RETURNING id
-	`, req.TableNumber, req.Capacity, req.Location).Scan(&tableID)
+	`, req.TableNumber, req.Capacity, req.Location, req.Status).Scan(&tableID)
 
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{

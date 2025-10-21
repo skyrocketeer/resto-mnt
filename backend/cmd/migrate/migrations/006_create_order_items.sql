@@ -13,15 +13,10 @@ CREATE TABLE IF NOT EXISTS order_items (
         'served'
     )) DEFAULT 'pending',
     notes TEXT,
-    created_at TIMESTAMP
-    WITH
-        TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP
-    WITH
-        TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
--- Create indexes
 CREATE INDEX IF NOT EXISTS idx_order_items_order_id ON order_items(order_id);
 CREATE INDEX IF NOT EXISTS idx_order_items_product_id ON order_items(product_id);
 CREATE INDEX IF NOT EXISTS idx_order_items_status ON order_items(status);

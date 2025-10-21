@@ -4,13 +4,13 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Form } from '@/components/ui/form'
 import { Button } from '@/components/ui/button'
-import { 
-  TextInputField, 
-  TextareaField,
+import {
+  TextInputField,
   NumberInputField,
   SelectField,
   FormSubmitButton,
-  tableStatusOptions 
+  tableStatusOptions,
+  tableLocationOptions
 } from '@/components/forms/FormComponents'
 import { createTableSchema, updateTableSchema, type CreateTableData, type UpdateTableData } from '@/lib/form-schemas'
 import { toastHelpers } from '@/lib/toast-helpers'
@@ -19,7 +19,7 @@ import type { DiningTable } from '@/types'
 import { X } from 'lucide-react'
 
 interface TableFormProps {
-  table?: DiningTable // If provided, we're editing; otherwise creating
+  table?: DiningTable
   onSuccess?: () => void
   onCancel?: () => void
   mode?: 'create' | 'edit'
@@ -31,20 +31,20 @@ export function TableForm({ table, onSuccess, onCancel, mode = 'create' }: Table
 
   // Choose the appropriate schema and default values
   const schema = isEditing ? updateTableSchema : createTableSchema
-  const defaultValues = isEditing 
+  const defaultValues = isEditing
     ? {
-        id: table.id,
-        table_number: table.table_number,
-        seats: table.seats,
-        status: table.status as any,
-        location: table.location || '',
-      }
+      id: table.id,
+      table_number: table.table_number,
+      seats: table.seating_capacity,
+      status: table.status as any,
+      location: table.location || '',
+    }
     : {
-        table_number: '',
-        seats: 4,
-        status: 'available' as const,
-        location: '',
-      }
+      table_number: '',
+      seats: 4,
+      status: 'available' as const,
+      location: '',
+    }
 
   const form = useForm<CreateTableData | UpdateTableData>({
     resolver: zodResolver(schema),
@@ -58,7 +58,7 @@ export function TableForm({ table, onSuccess, onCancel, mode = 'create' }: Table
       queryClient.invalidateQueries({ queryKey: ['admin-tables'] })
       queryClient.invalidateQueries({ queryKey: ['tables'] })
       queryClient.invalidateQueries({ queryKey: ['tables-summary'] })
-      toastHelpers.tableCreated(form.getValues('table_number'))
+      toastHelpers.tableCreated(form.getValues('table_number') || '')
       form.reset()
       onSuccess?.()
     },
@@ -74,7 +74,7 @@ export function TableForm({ table, onSuccess, onCancel, mode = 'create' }: Table
       queryClient.invalidateQueries({ queryKey: ['admin-tables'] })
       queryClient.invalidateQueries({ queryKey: ['tables'] })
       queryClient.invalidateQueries({ queryKey: ['tables-summary'] })
-      toastHelpers.apiSuccess('Update', `Table ${form.getValues('table_number')}`)
+      toastHelpers.apiSuccess('Update', `Table ${form.getValues('table_number') || ''}`)
       onSuccess?.()
     },
     onError: (error) => {
@@ -121,28 +121,34 @@ export function TableForm({ table, onSuccess, onCancel, mode = 'create' }: Table
                 placeholder="Enter table number (e.g., T1, Table 5, A1)"
                 description="Unique identifier for this table"
               />
-              
-              <TextareaField
+              <SelectField
+                control={form.control}
+                name="location"
+                label="Table Location"
+                options={tableLocationOptions}
+                description="Describe table location (e.g., 'By the window', 'Near kitchen', 'Private section')"
+              />
+              {/* <TextareaField
                 control={form.control}
                 name="location"
                 label="Location/Notes"
                 placeholder="Describe table location (e.g., 'By the window', 'Near kitchen', 'Private section')"
                 rows={2}
                 description="Optional location description or special notes"
-              />
+              /> */}
             </div>
 
             {/* Table Details */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <NumberInputField
                 control={form.control}
-                name="seats"
+                name="seat_capacity"
                 label="Number of Seats"
                 min={1}
                 max={20}
                 description="Maximum seating capacity"
               />
-              
+
               <SelectField
                 control={form.control}
                 name="status"
@@ -172,7 +178,7 @@ export function TableForm({ table, onSuccess, onCancel, mode = 'create' }: Table
               >
                 {isEditing ? 'Update Table' : 'Create Table'}
               </FormSubmitButton>
-              
+
               {onCancel && (
                 <Button
                   type="button"

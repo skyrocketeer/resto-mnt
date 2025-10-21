@@ -20,6 +20,7 @@ import {
 import { Textarea } from '@/components/ui/textarea'
 import { Switch } from '@/components/ui/switch'
 import { Loader2 } from 'lucide-react'
+import { getOptions } from '@/lib/utils'
 
 // Generic form field wrapper
 interface FormFieldWrapperProps<T extends FieldValues> {
@@ -196,7 +197,7 @@ export function PriceInputField<T extends FieldValues>({
 }
 
 // Select Field
-interface SelectOption {
+export interface SelectOption {
   value: string
   label: string
   disabled?: boolean
@@ -234,8 +235,8 @@ export function SelectField<T extends FieldValues>({
             </FormControl>
             <SelectContent>
               {options.map((option) => (
-                <SelectItem 
-                  key={option.value} 
+                <SelectItem
+                  key={option.value}
                   value={option.value}
                   disabled={option.disabled}
                 >
@@ -369,29 +370,13 @@ export function FormSubmitButton({
 }
 
 // POS-specific role select options
-export const roleOptions: SelectOption[] = [
-  { value: 'admin', label: 'Administrator' },
-  { value: 'manager', label: 'Manager' },
-  { value: 'server', label: 'Server' },
-  { value: 'counter', label: 'Counter/Checkout' },
-  { value: 'kitchen', label: 'Kitchen Staff' },
-]
+export const roleOptions: SelectOption[] = getOptions(['admin', 'manager', 'cashier', 'kitchen', 'server', 'counter'])
 
 // POS-specific status options
-export const productStatusOptions: SelectOption[] = [
-  { value: 'active', label: 'Active' },
-  { value: 'inactive', label: 'Inactive' },
-]
+export const productStatusOptions: SelectOption[] = getOptions(['active', 'inactive'])
 
-export const orderTypeOptions: SelectOption[] = [
-  { value: 'dine-in', label: 'Dine In' },
-  { value: 'take-away', label: 'Take Away' },
-  { value: 'delivery', label: 'Delivery' },
-]
+export const orderTypeOptions: SelectOption[] = getOptions([ 'dine-in', 'take-away', 'delivery' ])
 
-export const tableStatusOptions: SelectOption[] = [
-  { value: 'available', label: 'Available' },
-  { value: 'occupied', label: 'Occupied' },
-  { value: 'reserved', label: 'Reserved' },
-  { value: 'maintenance', label: 'Under Maintenance' },
-]
+export const tableStatusOptions: SelectOption[] = getOptions(['available', 'occupied', 'reserved', 'out_of_service'])
+
+export const tableLocationOptions: SelectOption[] = getOptions(['main_floor', 'patio', 'private_room', 'outdoor', 'bar_counter', 'takeout_counter', 'window_side'])

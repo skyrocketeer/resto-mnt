@@ -15,17 +15,20 @@ import (
 
 func main() {
 	// Load environment variables
-	util.LoadEnv()
+	util.LoadEnv("")
 
 	// Database configuration
 	dbConfig := database.Config{
-		Host:     util.FromEnv("DB_HOST", "postgres"),
+		Host:     util.FromEnv("DB_HOST", "localhost"),
 		Port:     util.FromEnv("DB_PORT", "5432"),
 		User:     util.FromEnv("DB_USER", "postgres"),
 		Password: util.FromEnv("DB_PASSWORD", ""),
 		DBName:   util.FromEnv("DB_NAME", "pos_system"),
 		SSLMode:  util.FromEnv("DB_SSLMODE", "disable"),
 	}
+
+	// Add debug logging for database connection
+	log.Printf("Connecting to database: %s on %s:%s", dbConfig.DBName, dbConfig.Host, dbConfig.Port)
 
 	// Initialize database connection
 	db, err := database.Connect(dbConfig)
@@ -34,19 +37,12 @@ func main() {
 	}
 	defer db.Close()
 
+	log.Printf("Successfully connected to database: %s", dbConfig.DBName)
+
 	// Test database connection
 	if err := db.Ping(); err != nil {
 		log.Fatalf("Failed to ping database: %v", err)
 	}
-
-	log.Println("Successfully connected to database")
-
-	// Run database migrations
-	log.Println("Running database migrations...")
-	if err := database.RunMigrations(db); err != nil {
-		log.Fatalf("Failed to run migrations: %v", err)
-	}
-	log.Println("Database migrations completed successfully")
 
 	// Initialize Gin router
 	gin.SetMode(util.FromEnv("GIN_MODE", "release"))

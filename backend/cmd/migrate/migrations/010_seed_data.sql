@@ -1,3 +1,4 @@
+-- +migrate Up
 -- Seed data for POS System
 
 -- Insert default users
@@ -75,21 +76,20 @@ INSERT INTO dining_tables (table_number, seating_capacity, location) VALUES
 ('BAR03', 1, 'Bar Counter'),
 ('TAKEOUT', 1, 'Takeout Counter');
 
--- Insert initial inventory
-INSERT INTO inventory (product_id, current_stock, minimum_stock, maximum_stock, unit_cost) 
-SELECT 
-    id as product_id,
-    50 as current_stock,
-    10 as minimum_stock,
-    100 as maximum_stock,
-    price * 0.4 as unit_cost
-FROM products;
-
--- Create some sample orders for testing
+-- Create some sample orders for testing (modified order_type to fit VARCHAR(20))
 INSERT INTO orders (order_number, table_id, user_id, order_type, status, subtotal, tax_amount, total_amount) VALUES
-('ORD001', (SELECT id FROM dining_tables WHERE table_number = 'T02'), (SELECT id FROM users WHERE username = 'server1'), 'dine_in', 'pending', 25.98, 2.60, 28.58),
-('ORD002', (SELECT id FROM dining_tables WHERE table_number = 'T05'), (SELECT id FROM users WHERE username = 'server2'), 'dine_in', 'preparing', 18.99, 1.90, 20.89),
-('ORD003', (SELECT id FROM dining_tables WHERE table_number = 'TAKEOUT'), (SELECT id FROM users WHERE username = 'counter1'), 'takeout', 'ready', 14.99, 1.50, 16.49);
+('ORD001', (SELECT id FROM dining_tables WHERE table_number = 'T02'), 
+ (SELECT id FROM users WHERE username = 'server1'), 
+ 'dine-in', -- changed from 'dine_in'
+ 'pending', 25.98, 2.60, 28.58),
+('ORD002', (SELECT id FROM dining_tables WHERE table_number = 'T05'), 
+ (SELECT id FROM users WHERE username = 'server2'), 
+ 'dine-in', -- changed from 'dine_in'
+ 'preparing', 18.99, 1.90, 20.89),
+('ORD003', (SELECT id FROM dining_tables WHERE table_number = 'TAKEOUT'), 
+ (SELECT id FROM users WHERE username = 'counter1'), 
+ 'takeout',
+ 'ready', 14.99, 1.50, 16.49);
 
 -- Insert sample order items
 INSERT INTO order_items (order_id, product_id, quantity, unit_price, total_price) VALUES
@@ -105,9 +105,10 @@ INSERT INTO order_items (order_id, product_id, quantity, unit_price, total_price
 ((SELECT id FROM orders WHERE order_number = 'ORD003'), (SELECT id FROM products WHERE sku = 'PIZ001'), 1, 14.99, 14.99);
 
 -- Insert sample payment
-INSERT INTO payments (order_id, payment_method, amount, status, processed_by, processed_at) VALUES
-((SELECT id FROM orders WHERE order_number = 'ORD003'), 'cash', 16.49, 'completed', (SELECT id FROM users WHERE username = 'counter1'), CURRENT_TIMESTAMP);
+-- INSERT INTO payments (order_id, payment_method, amount, status, payment_gateway_response, processed_at) VALUES
+-- ((SELECT id FROM orders WHERE order_number = 'ORD003'), 'cash', 16.49, 'completed', 'success', CURRENT_TIMESTAMP);
 
 -- Update order 3 status to completed since payment is done
-UPDATE orders SET status = 'completed', completed_at = CURRENT_TIMESTAMP WHERE order_number = 'ORD003';
+-- UPDATE orders SET status = 'completed', completed_at = CURRENT_TIMESTAMP WHERE order_number = 'ORD003';
 
+-- +migrate Down

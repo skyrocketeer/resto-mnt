@@ -9,9 +9,9 @@ import {
   Menu,
   BarChart3,
   UserCog,
-  Package,
-  LayoutGrid,
-  ChevronLeft
+  ChevronLeft,
+  CookingPot,
+  Utensils
 } from 'lucide-react'
 import type { UserInfo } from '@/types'
 import { useScreenSizeWithSidebar } from '@/hooks/useScreenSize'
@@ -72,13 +72,13 @@ const adminSections = [
   {
     id: 'menu',
     label: 'Manage Menu',
-    icon: <Menu className="w-5 h-5" />,
+    icon: <CookingPot className="w-5 h-5" />,
     description: 'Categories and products'
   },
   {
     id: 'tables',
     label: 'Manage Tables',
-    icon: <LayoutGrid className="w-5 h-5" />,
+    icon: <Utensils className="w-5 h-5" />,
     description: 'Dining table setup'
   },
   {
