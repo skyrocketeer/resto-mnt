@@ -6,7 +6,7 @@
 
 # Backup files
 backups/
-*.sql
+# *.sql
 *.tar.gz
 
 # Dependencies
