@@ -196,7 +196,7 @@ func (h *AdminHandler) GetAdminTables(c *gin.Context) {
 
 	// Get tables with pagination
 	query := `
-		SELECT id, table_number, capacity, location, is_occupied, is_active, created_at, updated_at
+		SELECT id, table_number, seating_capacity, location, status, created_at, updated_at
 		FROM dining_tables 
 		ORDER BY location, table_number 
 		LIMIT $1 OFFSET $2
@@ -218,15 +218,14 @@ func (h *AdminHandler) GetAdminTables(c *gin.Context) {
 		var (
 			id          string
 			tableNumber string
-			capacity    int
+			seatingCapacity int
 			location    *string
-			isOccupied  bool
-			isActive    bool
+			status      string
 			createdAt   time.Time
 			updatedAt   time.Time
 		)
 		err := rows.Scan(
-			&id, &tableNumber, &capacity, &location, &isOccupied, &isActive, &createdAt, &updatedAt,
+			&id, &tableNumber, &seatingCapacity, &location, &status, &createdAt, &updatedAt,
 		)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{
@@ -240,10 +239,9 @@ func (h *AdminHandler) GetAdminTables(c *gin.Context) {
 		table := map[string]interface{}{
 			"id":           id,
 			"table_number": tableNumber,
-			"capacity":     capacity,
+			"capacity": seatingCapacity,
 			"location":     location,
-			"is_occupied":  isOccupied,
-			"is_active":    isActive,
+			"status":       status,
 			"created_at":   createdAt,
 			"updated_at":   updatedAt,
 		}

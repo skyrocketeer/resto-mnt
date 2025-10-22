@@ -56,7 +56,7 @@ type DiningTable struct {
 	TableNumber     string    `json:"table_number"`
 	SeatingCapacity int       `json:"seating_capacity"`
 	Location        *string   `json:"location"`
-	IsOccupied      bool      `json:"is_occupied"`
+	Status          string    `json:"status"`
 	CreatedAt       time.Time `json:"created_at"`
 	UpdatedAt       time.Time `json:"updated_at"`
 }

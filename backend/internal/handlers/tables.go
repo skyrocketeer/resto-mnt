@@ -23,7 +23,7 @@ func (h *TableHandler) GetTables(c *gin.Context) {
 	location := c.Query("location")
 
 	queryBuilder := `
-		SELECT t.id, t.table_number, t.seating_capacity, t.location, 
+		SELECT t.id, t.table_number, t.seating_capacity, t.location, t.status,
 		       t.created_at, t.updated_at,
 		       o.id as order_id, o.order_number, o.customer_name, o.status as order_status,
 		       o.created_at as order_created_at, o.total_amount
@@ -62,7 +62,7 @@ func (h *TableHandler) GetTables(c *gin.Context) {
 		var totalAmount sql.NullFloat64
 
 		err := rows.Scan(
-			&table.ID, &table.TableNumber, &table.SeatingCapacity, &table.Location, &table.IsOccupied,
+			&table.ID, &table.TableNumber, &table.SeatingCapacity, &table.Location, &table.Status,
 			&table.CreatedAt, &table.UpdatedAt,
 			&orderID, &orderNumber, &customerName, &orderStatus, &orderCreatedAt, &totalAmount,
 		)
@@ -81,7 +81,7 @@ func (h *TableHandler) GetTables(c *gin.Context) {
 			"table_number":     table.TableNumber,
 			"seating_capacity": table.SeatingCapacity,
 			"location":         table.Location,
-			"is_occupied":      table.IsOccupied,
+			"status":           table.Status,
 			"created_at":       table.CreatedAt,
 			"updated_at":       table.UpdatedAt,
 			"current_order":    nil,
@@ -132,7 +132,7 @@ func (h *TableHandler) GetTable(c *gin.Context) {
 
 	err = h.db.QueryRow(query, tableID).Scan(
 		&table.ID, &table.TableNumber, &table.SeatingCapacity, &table.Location,
-		&table.IsOccupied, &table.CreatedAt, &table.UpdatedAt,
+		&table.Status, &table.CreatedAt, &table.UpdatedAt,
 	)
 
 	if err == sql.ErrNoRows {
@@ -183,7 +183,7 @@ func (h *TableHandler) GetTable(c *gin.Context) {
 		"table_number":     table.TableNumber,
 		"seating_capacity": table.SeatingCapacity,
 		"location":         table.Location,
-		"is_occupied":      table.IsOccupied,
+		"status":           table.Status,
 		"created_at":       table.CreatedAt,
 		"updated_at":       table.UpdatedAt,
 		"current_order":    currentOrder,
@@ -227,7 +227,7 @@ func (h *TableHandler) GetTablesByLocation(c *gin.Context) {
 		var location sql.NullString
 
 		err := rows.Scan(
-			&table.ID, &table.TableNumber, &table.SeatingCapacity, &location, &table.IsOccupied,
+			&table.ID, &table.TableNumber, &table.SeatingCapacity, &location, &table.Status,
 			&table.CreatedAt, &table.UpdatedAt,
 			&orderID, &orderNumber, &customerName, &orderStatus,
 		)
@@ -272,12 +272,12 @@ func (h *TableHandler) GetTablesByLocation(c *gin.Context) {
 func (h *TableHandler) GetTableStatus(c *gin.Context) {
 	query := `
 		SELECT 
-		    COUNT(*) as total_tables,
-		    COUNT(CASE WHEN is_occupied = true THEN 1 END) as occupied_tables,
-		    COUNT(CASE WHEN is_occupied = false THEN 1 END) as available_tables,
-		    COALESCE(location, 'General') as location
+		    COUNT(*) as total,
+		    COALESCE(location, 'main_floor') as location,
+				SUM(CASE WHEN status != 'available' THEN 1 ELSE 0 END) as occupied,
+				SUM(CASE WHEN status == 'available' THEN 1 ELSE 0 END) as available,
 		FROM dining_tables
-		GROUP BY COALESCE(location, 'General')
+		GROUP BY COALESCE(location, 'main_floor')
 		ORDER BY location
 	`
 
@@ -299,7 +299,7 @@ func (h *TableHandler) GetTableStatus(c *gin.Context) {
 		var total, occupied, available int
 		var location string
 
-		err := rows.Scan(&total, &occupied, &available, &location)
+		err := rows.Scan(&total, &location, &occupied, &available)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, models.APIResponse{
 				Success: false,
