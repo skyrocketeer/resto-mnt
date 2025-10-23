@@ -7,13 +7,13 @@ import { OrderCart } from './OrderCart'
 import { TableSelectionModal } from './TableSelectionModal'
 // Clean imports for debugging
 import apiClient from '@/api/client'
-import type { UserInfo, Category, Product, CartItem, DiningTable } from '@/types'
+import type { UserInfo, Product, CartItem, DiningTable } from '@/types'
 
 interface POSLayoutProps {
   user: UserInfo
 }
 
-export function POSLayout({ user }: POSLayoutProps) {
+export function POSLayout() {
   // State management
   const [selectedCategory, setSelectedCategory] = useState<string>('')
   const [cart, setCart] = useState<CartItem[]>([])
@@ -42,15 +42,9 @@ export function POSLayout({ user }: POSLayoutProps) {
     }),
   })
 
-  // Fetch tables
-  const { data: tablesResponse } = useQuery({
-    queryKey: ['tables'],
-    queryFn: () => apiClient.getTables({ available_only: false }),
-  })
-
-  const categories = categoriesResponse?.data || []
-  const products = productsResponse?.data || []
-  const tables = tablesResponse?.data || []
+  const categories = categoriesResponse?.data.categories || []
+  const products = productsResponse?.data?.products || []
+  const tables: DiningTable[] =  []
 
   // Cart functions
   const addToCart = (product: Product) => {
@@ -178,7 +172,7 @@ export function POSLayout({ user }: POSLayoutProps) {
         {/* Categories Sidebar - back to simple version */}
         <div className="w-64 bg-white border-r border-gray-200 flex-shrink-0">
           <CategorySidebar
-            categories={categories}
+            categories={categories.flat()}
             selectedCategory={selectedCategory}
             onCategorySelect={setSelectedCategory}
             isLoading={categoriesLoading}
@@ -191,7 +185,7 @@ export function POSLayout({ user }: POSLayoutProps) {
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-semibold text-gray-900">
                 {selectedCategory 
-                  ? categories.find(c => c.id === selectedCategory)?.name || 'Products'
+                  ? categories.flat().find(c => c.id === selectedCategory)?.name || 'Products'
                   : 'All Products'
                 }
               </h2>
@@ -203,7 +197,7 @@ export function POSLayout({ user }: POSLayoutProps) {
           
           <div className="flex-1 overflow-auto">
             <ProductGrid
-              products={products}
+              products={products.flat()}
               onProductSelect={addToCart}
               isLoading={productsLoading}
             />

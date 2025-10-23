@@ -20,7 +20,7 @@ import {
   Users,
   Receipt
 } from 'lucide-react'
-import type { Product, Category, DiningTable, Order } from '@/types'
+import type { Product, DiningTable, Order } from '@/types'
 
 interface CartItem {
   product: Product
@@ -67,31 +67,31 @@ export function CounterInterface() {
   // Fetch categories
   const { data: categories = [] } = useQuery({
     queryKey: ['categories'],
-    queryFn: () => apiClient.getCategories().then(res => res.data)
+    queryFn: () => apiClient.getCategories().then(res => res.data.categories)
   })
 
   // Fetch products
   const { data: products = [] } = useQuery({
     queryKey: ['products', selectedCategory],
+    initialData: [],
     queryFn: () => {
       if (selectedCategory === 'all') {
-        return apiClient.getProducts().then(res => res.data)
-      } else {
-        return apiClient.getProductsByCategory(selectedCategory).then(res => res.data)
+        return apiClient.getProducts().then(res => res.data.products)
       }
+      return apiClient.getProductsByCategory(selectedCategory).then(res => res.data.products)
     }
   })
 
   // Fetch available tables 
   const { data: tables = [] } = useQuery({
     queryKey: ['tables'],
-    queryFn: () => apiClient.getTables().then(res => res.data)
+    queryFn: () => apiClient.getTables().then(res => res.data.tables)
   })
 
   // Fetch pending orders for payment processing
   const { data: pendingOrders = [] } = useQuery({
     queryKey: ['pendingOrders'],
-    queryFn: () => apiClient.getOrders({ status: ['ready', 'served'] }).then(res => res.data)
+    queryFn: () => apiClient.getOrders({ status: ['ready', 'served'] }).then(res => res.data.orders)
   })
 
   // Create order mutation (counter endpoint - all order types)
@@ -124,13 +124,13 @@ export function CounterInterface() {
   })
 
   // Filter products based on search
-  const filteredProducts = products.filter(product =>
+  const filteredProducts = products.flat().filter((product: Product) =>
     product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     (product.description?.toLowerCase().includes(searchTerm.toLowerCase()) ?? false)
   )
 
   // Available tables (for dine-in)
-  const availableTables = tables.filter(table => !table.is_occupied)
+  const availableTables = tables.filter(table => !table)
 
   const addToCart = (product: Product) => {
     const existingItem = cart.find(item => item.product.id === product.id)
@@ -305,7 +305,7 @@ export function CounterInterface() {
                 >
                   All Items
                 </Button>
-                {categories.map(category => (
+                {categories.flat().map(category => (
                   <Button
                     key={category.id}
                     variant={selectedCategory === category.id ? 'default' : 'outline'}
@@ -325,7 +325,7 @@ export function CounterInterface() {
           {activeTab === 'create' ? (
             /* Products Grid */
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {filteredProducts.map(product => {
+              {filteredProducts.map((product: Product) => {
                 const cartItem = cart.find(item => item.product.id === product.id)
                 return (
                   <Card key={product.id} className="hover:shadow-md transition-shadow">
@@ -411,7 +411,7 @@ export function CounterInterface() {
                   <p>No orders ready for payment</p>
                 </div>
               ) : (
-                pendingOrders.map(order => (
+                pendingOrders.flat().map(order => (
                   <Card 
                     key={order.id} 
                     className={`cursor-pointer transition-all ${
@@ -468,7 +468,7 @@ export function CounterInterface() {
                     Select Table
                   </h3>
                   <div className="grid grid-cols-3 gap-2 mb-4">
-                    {availableTables.slice(0, 9).map(table => (
+                    {availableTables.flat().slice(0, 9).map(table => (
                       <Button
                         key={table.id}
                         variant={selectedTable?.id === table.id ? 'default' : 'outline'}

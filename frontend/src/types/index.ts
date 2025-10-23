@@ -6,10 +6,17 @@ export interface APIResponse<T = any> {
   error?: string;
 }
 
-export interface PaginatedResponse<T = any> {
+export interface PaginatedResponse<T> {
   success: boolean;
   message: string;
-  data: T;
+  data: {
+    pagination: {
+      limit: number;
+      current_page: number;
+      total: number;
+      total_pages: number;
+    };
+  } & Record<string, T[]>;
   meta: MetaData;
 }
 
@@ -77,10 +84,9 @@ export interface Product {
 export interface DiningTable {
   id: string;
   table_number: string;
-  seating_capacity: number;
+  capacity: number;
   status: 'available' | 'occupied' | 'reserved' | 'out_of_service';
-  location?: string;
-  is_occupied: boolean;
+  location: string;
   created_at: string;
   updated_at: string;
 }

@@ -708,9 +708,9 @@ func (h *AdminHandler) UpdateTable(c *gin.Context) {
 
 	var req struct {
 		TableNumber *string `json:"table_number"`
-		Capacity    *int    `json:"capacity"`
+		Capacity    *int    `json:"seating_capacity"`
 		Location    *string `json:"location"`
-		IsActive    *bool   `json:"is_active"`
+		Status    	*string   `json:"status"`
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -733,7 +733,7 @@ func (h *AdminHandler) UpdateTable(c *gin.Context) {
 		argCount++
 	}
 	if req.Capacity != nil {
-		updates = append(updates, fmt.Sprintf("capacity = $%d", argCount))
+		updates = append(updates, fmt.Sprintf("seating_capacity = $%d", argCount))
 		args = append(args, *req.Capacity)
 		argCount++
 	}
@@ -742,9 +742,9 @@ func (h *AdminHandler) UpdateTable(c *gin.Context) {
 		args = append(args, req.Location)
 		argCount++
 	}
-	if req.IsActive != nil {
-		updates = append(updates, fmt.Sprintf("is_active = $%d", argCount))
-		args = append(args, *req.IsActive)
+	if req.Status != nil {
+		updates = append(updates, fmt.Sprintf("status = $%d", argCount))
+		args = append(args, *req.Status)
 		argCount++
 	}
 

@@ -35,20 +35,19 @@ export function TableForm({ table, onSuccess, onCancel, mode = 'create' }: Table
     ? {
       id: table.id,
       table_number: table.table_number,
-      seats: table.seating_capacity,
+      capacity: table.capacity,
       status: table.status as any,
       location: table.location || '',
     }
     : {
       table_number: '',
-      seats: 4,
+      capacity: 4,
       status: 'available' as const,
       location: '',
     }
 
   const form = useForm<CreateTableData | UpdateTableData>({
-    resolver: zodResolver(schema),
-    defaultValues,
+    resolver: zodResolver(schema), defaultValues,
   })
 
   // Create mutation
@@ -57,7 +56,6 @@ export function TableForm({ table, onSuccess, onCancel, mode = 'create' }: Table
     onSuccess: (response) => {
       queryClient.invalidateQueries({ queryKey: ['admin-tables'] })
       queryClient.invalidateQueries({ queryKey: ['tables'] })
-      queryClient.invalidateQueries({ queryKey: ['tables-summary'] })
       toastHelpers.tableCreated(form.getValues('table_number') || '')
       form.reset()
       onSuccess?.()
@@ -73,7 +71,6 @@ export function TableForm({ table, onSuccess, onCancel, mode = 'create' }: Table
     onSuccess: (response) => {
       queryClient.invalidateQueries({ queryKey: ['admin-tables'] })
       queryClient.invalidateQueries({ queryKey: ['tables'] })
-      queryClient.invalidateQueries({ queryKey: ['tables-summary'] })
       toastHelpers.apiSuccess('Update', `Table ${form.getValues('table_number') || ''}`)
       onSuccess?.()
     },
@@ -142,7 +139,7 @@ export function TableForm({ table, onSuccess, onCancel, mode = 'create' }: Table
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <NumberInputField
                 control={form.control}
-                name="seat_capacity"
+                name="capacity"
                 label="Number of Seats"
                 min={1}
                 max={20}

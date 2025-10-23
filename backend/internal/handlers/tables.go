@@ -28,7 +28,6 @@ func (h *TableHandler) GetTables(c *gin.Context) {
 		       o.id as order_id, o.order_number, o.customer_name, o.status as order_status,
 		       o.created_at as order_created_at, o.total_amount
 		FROM dining_tables t
-		LEFT JOIN orders o ON t.id = o.table_id AND o.status NOT IN ('completed', 'cancelled')
 		WHERE 1=1
 	`
 

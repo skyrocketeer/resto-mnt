@@ -43,6 +43,7 @@
   "devDependencies": {
     "@tanstack/router-devtools": "^1.57.15",
     "@tanstack/router-plugin": "^1.57.15",
+    "@types/node": "^24.9.1",
     "@types/react": "^18.3.11",
     "@types/react-dom": "^18.3.0",
     "@typescript-eslint/eslint-plugin": "^8.8.0",

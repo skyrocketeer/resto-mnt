@@ -58,7 +58,7 @@ export function AdminStaffManagement() {
   }, [searchTerm, debouncedSearch])
 
   // Fetch users with pagination
-  const { data: usersData, isLoading, isFetching, isPlaceholderData } = useQuery({
+  const { data: usersData, isLoading, isFetching } = useQuery({
     queryKey: ['users', pagination.page, pagination.pageSize, debouncedSearch],
     queryFn: () => apiClient.getUsers({
       page: pagination.page,

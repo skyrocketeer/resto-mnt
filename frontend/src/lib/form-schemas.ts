@@ -61,12 +61,12 @@ export const updateCategorySchema = createCategorySchema.partial().extend({
 })
 
 // Table related schemas
-export const tableStatusValues = ['available', 'occupied', 'reserved', 'maintenance'] as const
+export const tableStatusValues = ['available', 'occupied', 'reserved', 'out_of_service'] as const
 export const tableStatusSchema = z.enum(tableStatusValues)
 
 export const createTableSchema = z.object({
   table_number: requiredStringSchema.min(1, 'Table number is required'),
-  seat_capacity: z.number().min(1, 'Table must have at least 1 seat').max(20, 'Maximum 20 seats per table'),
+  capacity: z.number().min(1, 'Table must have at least 1 seat').max(20, 'Maximum 20 seats per table'),
   status: tableStatusSchema.default('available'),
   location: z.string().optional(),
 })

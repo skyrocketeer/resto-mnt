@@ -116,7 +116,7 @@ export function AdminLayout({ user }: AdminLayoutProps) {
       case 'menu':
         return <AdminMenuManagement />
       case 'tables':
-        return <AdminTableManagement />
+        return <AdminTableManagement userInfo={user} />
       case 'reports':
         return <AdminReports />
       default:

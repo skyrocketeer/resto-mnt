@@ -23,11 +23,12 @@ import { PaginationControlsComponent } from '@/components/ui/pagination-controls
 import { usePagination } from '@/hooks/usePagination'
 import { TableGridSkeleton, SearchingSkeleton, FilteringSkeleton, StatsCardSkeleton } from '@/components/ui/skeletons'
 import { InlineLoading } from '@/components/ui/loading-spinner'
-import type { DiningTable } from '@/types'
+import type { APIResponse, DiningTable, UserInfo } from '@/types'
+import { getStatusLabel } from '@/lib/utils'
 
 type ViewMode = 'list' | 'table-form'
 
-export function AdminTableManagement() {
+export function AdminTableManagement({ userInfo }: { userInfo: UserInfo }) {
   const [viewMode, setViewMode] = useState<ViewMode>('list')
   const [searchTerm, setSearchTerm] = useState('')
   const [debouncedSearch, setDebouncedSearch] = useState('')
@@ -35,6 +36,7 @@ export function AdminTableManagement() {
   const [filterStatus, setFilterStatus] = useState<string>('all')
   const [isSearching, setIsSearching] = useState(false)
   const [isFiltering, setIsFiltering] = useState(false)
+  const isAdmin = userInfo?.role === 'admin'
 
   const queryClient = useQueryClient()
 
@@ -67,26 +69,40 @@ export function AdminTableManagement() {
     pagination.goToFirstPage()
   }, [filterStatus])
 
-  // Fetch tables with pagination
   const { data: tablesData, isLoading, isFetching } = useQuery({
-    queryKey: ['admin-tables', pagination.page, pagination.pageSize, debouncedSearch, filterStatus],
-    queryFn: () => apiClient.getAdminTables({
-      page: pagination.page,
-      limit: pagination.pageSize,
-      search: debouncedSearch || undefined,
-      status: filterStatus !== 'all' ? filterStatus : undefined
-    }).then(res => res.data),
-  })
+    queryKey: [
+      isAdmin ? 'admin-tables' : 'tables',
+      pagination.page,
+      pagination.pageSize,
+      debouncedSearch,
+      filterStatus,
+    ],
+    queryFn: async () => {
+      const params = {
+        page: pagination.page,
+        limit: pagination.pageSize,
+        search: debouncedSearch || undefined,
+        status: filterStatus !== 'all' ? filterStatus : undefined,
+      }
 
-  // Also fetch summary stats (all tables for stats calculation)
-  const { data: allTables = [] } = useQuery({
-    queryKey: ['tables-summary'],
-    queryFn: () => apiClient.getTables().then(res => res.data)
+      if (isAdmin) {
+        return await apiClient.getAdminTables(params)
+      }
+      return await apiClient.getTables()
+    },
+    enabled: !!userInfo, // only run when user info is loaded
   })
 
   // Extract data and pagination info
-  const tables = Array.isArray(tablesData) ? tablesData : (tablesData as any)?.data || []
-  const paginationInfo = (tablesData as any)?.pagination || { total: 0 }
+  const tables = Array.isArray(tablesData?.data?.tables)
+    ? tablesData.data.tables.flat() as DiningTable[]
+    : [] as DiningTable[]
+  const paginationInfo = tablesData?.data?.pagination ?? {
+    limit: 0,
+    current_page: 1,
+    total: 0,
+    total_pages: 0,
+  }
 
   // Update pagination total
   useEffect(() => {
@@ -140,9 +156,6 @@ export function AdminTableManagement() {
     }
   }
 
-  // Data is already filtered on the server side
-  const filteredTables = tables
-
   // Get status badge styling
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -161,7 +174,7 @@ export function AdminTableManagement() {
           icon: <Clock className="h-3 w-3" />,
           className: 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200'
         }
-      case 'maintenance':
+      case 'out_of_service':
         return { 
           icon: <AlertCircle className="h-3 w-3" />,
           className: 'bg-red-100 text-red-800 hover:bg-red-200'
@@ -176,11 +189,11 @@ export function AdminTableManagement() {
 
   // Calculate stats from all tables (for accurate totals)
   const stats = {
-    total: allTables.length,
-    available: allTables.filter(t => (t as any).status === 'available').length,
-    occupied: allTables.filter(t => (t as any).status === 'occupied').length,
-    reserved: allTables.filter(t => (t as any).status === 'reserved').length,
-    maintenance: allTables.filter(t => (t as any).status === 'maintenance').length,
+    total: tables.length,
+    available: tables.filter((t: DiningTable) => t.status === 'available').length,
+    occupied: tables.filter((t: DiningTable) => t.status === 'occupied').length,
+    reserved: tables.filter((t: DiningTable) => t.status === 'reserved').length,
+    maintenance: tables.filter((t: DiningTable) => t.status === 'out_of_service').length
   }
 
   // Show form
@@ -329,7 +342,7 @@ export function AdminTableManagement() {
           <Button
             variant={filterStatus === 'maintenance' ? 'default' : 'outline'}
             size="sm"
-            onClick={() => setFilterStatus('maintenance')}
+            onClick={() => setFilterStatus('out_of_service')}
           >
             Maintenance ({stats.maintenance})
           </Button>
@@ -341,7 +354,7 @@ export function AdminTableManagement() {
         <TableGridSkeleton count={pagination.pageSize} />
       ) : isSearching && searchTerm ? (
         <SearchingSkeleton />
-      ) : filteredTables.length === 0 ? (
+      ) : tables.length === 0 ? (
         <Card>
           <CardContent className="pt-6">
             <div className="text-center py-8">
@@ -365,7 +378,7 @@ export function AdminTableManagement() {
         </Card>
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {filteredTables.map((table: any) => {
+          {tables.map((table: any) => {
             const statusBadge = getStatusBadge(table.status)
             return (
               <Card key={table.id} className="hover:shadow-md transition-shadow">
@@ -376,7 +389,7 @@ export function AdminTableManagement() {
                       <div className="flex items-center gap-2 mt-1">
                         <Badge className={`gap-1 ${statusBadge.className}`}>
                           {statusBadge.icon}
-                          {table.status}
+                          {getStatusLabel(table.status)}
                         </Badge>
                       </div>
                     </div>
@@ -416,8 +429,8 @@ export function AdminTableManagement() {
                         size="sm"
                         variant="outline"
                         onClick={() => handleDeleteTable(table)}
-                        disabled={deleteTableMutation.isPending || table.status === 'occupied'}
-                        className="gap-2 text-red-600 hover:text-red-700 hover:border-red-300"
+                        disabled={deleteTableMutation.isPending || table.status === 'occupied' || table.status === 'reserved'}
+                        className="gap-2 text-red-600 hover:bg-red-500 hover:text-white"
                       >
                         <Trash2 className="h-4 w-4" />
                         Delete
@@ -432,7 +445,7 @@ export function AdminTableManagement() {
       )}
 
       {/* Pagination */}
-      {filteredTables.length > 0 && (
+      {tables.length > 0 && (
         <div className="mt-6 space-y-4">
           {isFetching && !isLoading && (
             <div className="flex justify-center">

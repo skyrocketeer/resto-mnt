@@ -82,7 +82,16 @@ class APIClient {
     } catch (error) {
       throw error
     }
-  }  
+  }
+
+  private async requestWithPagination<T>(config: AxiosRequestConfig): Promise<PaginatedResponse<T>> {
+    try {
+      const response: AxiosResponse<PaginatedResponse<T>> = await this.client.request(config);
+      return response.data;
+    } catch (error) {
+      throw error
+    }
+  }
 
   // Authentication endpoints
   async login(credentials: LoginRequest): Promise<APIResponse<LoginResponse>> {
@@ -109,7 +118,7 @@ class APIClient {
 
   // Product endpoints
   async getProducts(filters?: ProductFilters): Promise<PaginatedResponse<Product[]>> {
-    return this.request({
+    return this.requestWithPagination({
       method: 'GET',
       url: '/products',
       params: filters,
@@ -123,16 +132,16 @@ class APIClient {
     });
   }
 
-  async getCategories(activeOnly = true): Promise<APIResponse<Category[]>> {
-    return this.request({
+  async getCategories(activeOnly = true): Promise<PaginatedResponse<Category[]>> {
+    return this.requestWithPagination({
       method: 'GET',
       url: '/categories',
       params: { active_only: activeOnly },
     });
   }
 
-  async getProductsByCategory(categoryId: string, availableOnly = true): Promise<APIResponse<Product[]>> {
-    return this.request({
+  async getProductsByCategory(categoryId: string, availableOnly = true): Promise<PaginatedResponse<Product[]>> {
+    return this.requestWithPagination({
       method: 'GET',
       url: `/categories/${categoryId}/products`,
       params: { available_only: availableOnly },
@@ -140,8 +149,8 @@ class APIClient {
   }
 
   // Table endpoints
-  async getTables(filters?: TableFilters): Promise<APIResponse<DiningTable[]>> {
-    return this.request({
+  async getTables(filters?: TableFilters): Promise<PaginatedResponse<DiningTable[]>> {
+    return this.requestWithPagination({
       method: 'GET',
       url: '/tables',
       params: filters,
@@ -331,7 +340,7 @@ class APIClient {
     });
   }
 
-  async createUser(userData: any): Promise<APIResponse<UserInfo>> {
+  async createUser(userData: UserInfo): Promise<APIResponse<UserInfo>> {
     return this.request({
       method: 'POST',
       url: '/admin/users',
@@ -339,7 +348,7 @@ class APIClient {
     });
   }
 
-  async updateUser(id: string, userData: any): Promise<APIResponse<UserInfo>> {
+  async updateUser(id: string, userData: UserInfo): Promise<APIResponse<UserInfo>> {
     return this.request({
       method: 'PATCH',
       url: `/admin/users/${id}`,
@@ -355,11 +364,11 @@ class APIClient {
   }
 
   // Admin-specific product management
-  async createProduct(productData: any): Promise<APIResponse<Product>> {
+  async createProduct(productData: Product): Promise<APIResponse<Product>> {
     return this.request({ method: 'POST', url: '/admin/products', data: productData });
   }
 
-  async updateProduct(id: string, productData: any): Promise<APIResponse<Product>> {
+  async updateProduct(id: string, productData: Product): Promise<APIResponse<Product>> {
     return this.request({ method: 'PUT', url: `/admin/products/${id}`, data: productData });
   }
 
@@ -368,11 +377,11 @@ class APIClient {
   }
 
   // Admin-specific category management  
-  async createCategory(categoryData: any): Promise<APIResponse<Category>> {
+  async createCategory(categoryData: Category): Promise<APIResponse<Category>> {
     return this.request({ method: 'POST', url: '/admin/categories', data: categoryData });
   }
 
-  async updateCategory(id: string, categoryData: any): Promise<APIResponse<Category>> {
+  async updateCategory(id: string, categoryData: Category): Promise<APIResponse<Category>> {
     return this.request({ method: 'PUT', url: `/admin/categories/${id}`, data: categoryData });
   }
 
@@ -415,8 +424,8 @@ class APIClient {
   }
 
   // Admin tables endpoint with pagination
-  async getAdminTables(params?: { page?: number, limit?: number, search?: string, status?: string }): Promise<APIResponse<DiningTable[]>> {
-    return this.request({ 
+  async getAdminTables(params?: { page?: number, limit?: number, search?: string, status?: string }): Promise<PaginatedResponse<DiningTable[]>> {
+    return this.requestWithPagination({ 
       method: 'GET', 
       url: '/admin/tables',
       params 
@@ -456,6 +465,5 @@ class APIClient {
 }
 
 // Create and export a singleton instance
-export const apiClient = new APIClient();
+const apiClient = new APIClient();
 export default apiClient;
-
