@@ -61,7 +61,7 @@ export function TableForm({ table, onSuccess, onCancel, mode = 'create' }: Table
       onSuccess?.()
     },
     onError: (error) => {
-      toastHelpers.apiError('Create table', error)
+      toastHelpers.apiError('Create table', error.message || 'Unknown error')
     },
   })
 
@@ -75,7 +75,7 @@ export function TableForm({ table, onSuccess, onCancel, mode = 'create' }: Table
       onSuccess?.()
     },
     onError: (error) => {
-      toastHelpers.apiError('Update table', error)
+      toastHelpers.apiError('Update table', error.message)
     },
   })
 

@@ -1,4 +1,4 @@
-import { User, Settings, Bell, LogOut, CreditCard, Users, ChefHat, LayoutDashboard } from "lucide-react"
+import { User, Settings, Bell, LogOut, CreditCard, ChefHat, LayoutDashboard } from "lucide-react"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -10,16 +10,23 @@ import {
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import apiClient from "@/api/client"
+import { useUser } from "@/contexts/UserContext"
 import type { UserInfo } from "@/types"
 
 interface UserMenuProps {
-  user: UserInfo
   collapsed?: boolean
   size?: "sm" | "md" | "lg"
 }
 
-export function UserMenu({ user, collapsed = false, size = "md" }: UserMenuProps) {
-  const getRoleConfig = (role: string) => {
+export function UserMenu({ collapsed = false, size = "md" }: UserMenuProps) {
+  const { user } = useUser()
+  
+  // Handle loading state or null user
+  if (!user) {
+    return null
+  }
+  
+  const getRoleConfig = (role: UserInfo['role']) => {
     switch (role) {
       case 'admin':
         return {
@@ -35,17 +42,10 @@ export function UserMenu({ user, collapsed = false, size = "md" }: UserMenuProps
           icon: <LayoutDashboard className="w-4 h-4" />,
           description: 'Operations management and reporting'
         }
-      case 'server':
+      case 'cashier':
         return {
-          title: 'Server',
+          title: 'Cashier',
           color: 'bg-blue-100 text-blue-800',
-          icon: <Users className="w-4 h-4" />,
-          description: 'Dine-in order creation'
-        }
-      case 'counter':
-        return {
-          title: 'Counter/Checkout',
-          color: 'bg-green-100 text-green-800',
           icon: <CreditCard className="w-4 h-4" />,
           description: 'Order creation and payment processing'
         }

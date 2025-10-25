@@ -110,10 +110,10 @@ export function AdminMenuManagement() {
 
   // Extract data and pagination info
   const products = Array.isArray(productsData) ? productsData : (productsData as any)?.data || []
-  const productsPaginationInfo = (productsData as any)?.pagination || { total: 0 }
+  // const productsPaginationInfo = (productsData as any)?.pagination || { total: 0 }
 
   const categories = Array.isArray(categoriesData) ? categoriesData : (categoriesData as any)?.data || []
-  const categoriesPaginationInfo = (categoriesData as any)?.pagination || { total: 0 }
+  // const categoriesPaginationInfo = (categoriesData as any)?.pagination || { total: 0 }
 
   // Delete product mutation
   const deleteProductMutation = useMutation({
@@ -376,7 +376,6 @@ export function AdminMenuManagement() {
                 )}
                 <PaginationControlsComponent
                   pagination={productsPagination}
-                  total={productsPaginationInfo.total || products.length}
                 />
               </div>
             )}
@@ -498,7 +497,6 @@ export function AdminMenuManagement() {
                 )}
                 <PaginationControlsComponent
                   pagination={categoriesPagination}
-                  total={categoriesPaginationInfo.total || categories.length}
                 />
               </div>
             )}

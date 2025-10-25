@@ -1,8 +1,7 @@
 import { Button } from '@/components/ui/button'
-import type { User } from '@/types'
+import { useUser } from '@/contexts/UserContext'
 
 interface KitchenHeaderProps {
-  user: User
   autoRefresh: boolean
   onToggleAutoRefresh: (enabled: boolean) => void
   onRefresh: () => void
@@ -10,12 +9,12 @@ interface KitchenHeaderProps {
 }
 
 export function KitchenHeader({ 
-  user, 
   autoRefresh, 
   onToggleAutoRefresh, 
   onRefresh,
   isLoading 
 }: KitchenHeaderProps) {
+  const { user } = useUser()
   const handleLogout = () => {
     localStorage.removeItem('pos_user')
     localStorage.removeItem('pos_token')
@@ -103,9 +102,9 @@ export function KitchenHeader({
           <div className="flex items-center space-x-3 pl-4 border-l border-gray-200">
             <div className="text-right">
               <div className="text-sm font-medium text-gray-900">
-                {user.first_name} {user.last_name}
+                {user?.first_name} {user?.last_name}
               </div>
-              <div className="text-xs text-gray-500 capitalize">{user.role}</div>
+              <div className="text-xs text-gray-500 capitalize">{user?.role}</div>
             </div>
             
             <Button

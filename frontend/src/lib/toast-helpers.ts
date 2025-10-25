@@ -40,123 +40,123 @@ export const toastHelpers = {
   // API Response helpers
   apiSuccess: (action: string, entity?: string) => {
     return toastHelpers.success(
-      `${action} successful`,
-      entity ? `${entity} has been ${action.toLowerCase()} successfully.` : undefined
+      `Thao tác ${action} thành công`,
+      entity ? `Đã ${action.toLowerCase()} ${entity} thành công.` : 'Thao tác thành công.'
     )
   },
 
-  apiError: (action: string, error?: any, entity?: string) => {
-    const errorMessage = error?.message || error?.toString() || 'An unexpected error occurred'
+  apiError: (action: string, error?: string) => {
+    const errorMessage = error || 'Lỗi không xác định'
     return toastHelpers.error(
-      `${action} failed`,
-      entity ? `Failed to ${action.toLowerCase()} ${entity}. ${errorMessage}` : errorMessage
+      `Thao tác ${action} thất bại`,
+      errorMessage
     )
   },
 
   // Common POS operations
   orderCreated: (orderNumber?: string) => {
     return toastHelpers.success(
-      "Order Created",
-      orderNumber ? `Order ${orderNumber} has been created successfully.` : "Order has been created successfully."
+      "Đơn hàng đã được tạo",
+      orderNumber ? `Đơn hàng ${orderNumber} đã được tạo thành công.` : "Đơn hàng đã được tạo thành công."
     )
   },
 
   paymentProcessed: (amount?: number) => {
     return toastHelpers.success(
-      "Payment Processed",
-      amount ? `Payment of $${amount.toFixed(2)} processed successfully.` : "Payment processed successfully."
+      "Thanh toán thành công",
+      amount ? `Thanh toán $${amount.toFixed(2)} thành công.` : "Thanh toán thành công."
     )
   },
 
   userCreated: (username: string) => {
     return toastHelpers.success(
-      "User Created",
-      `User "${username}" has been created successfully.`
+      "Người dùng đã được tạo",
+      `Người dùng "${username}" đã được tạo thành công.`
     )
   },
 
   userDeleted: (username: string) => {
     return toastHelpers.success(
-      "User Deleted", 
-      `User "${username}" has been deleted successfully.`
+      "Người dùng đã được xóa", 
+      `Người dùng "${username}" đã được xóa thành công.`
     )
   },
 
   productCreated: (productName: string) => {
     return toastHelpers.success(
-      "Product Added",
-      `"${productName}" has been added to the menu.`
+      "Sản phẩm đã được thêm",
+      `"${productName}" đã được thêm vào menu.`
     )
   },
 
   productDeleted: (productName: string) => {
     return toastHelpers.success(
-      "Product Deleted",
-      `"${productName}" has been deleted successfully.`
+      "Sản phẩm đã được xóa",
+      `"${productName}" đã được xóa thành công.`
     )
   },
 
   categoryCreated: (categoryName: string) => {
     return toastHelpers.success(
-      "Category Created",
-      `Category "${categoryName}" has been created successfully.`
+      "Danh mục đã được tạo",
+      `Danh mục "${categoryName}" đã được tạo thành công.`
     )
   },
 
   categoryDeleted: (categoryName: string) => {
     return toastHelpers.success(
-      "Category Deleted",
-      `Category "${categoryName}" has been deleted successfully.`
+      "Danh mục đã được xóa",
+      `Danh mục "${categoryName}" đã được xóa thành công.`
     )
   },
 
   productUpdated: (productName: string) => {
     return toastHelpers.success(
-      "Product Updated",
-      `"${productName}" has been updated successfully.`
+      "Sản phẩm đã được cập nhật",
+      `"${productName}" đã được cập nhật thành công.`
     )
   },
 
   categoryUpdated: (categoryName: string) => {
     return toastHelpers.success(
-      "Category Updated", 
-      `Category "${categoryName}" has been updated successfully.`
+      "Danh mục đã được cập nhật",  
+      `Danh mục "${categoryName}" đã được cập nhật thành công.`
     )
   },
 
   tableCreated: (tableNumber: string) => {
     return toastHelpers.success(
-      "Table Created",
-      `Table ${tableNumber} has been created successfully.`
+      "Bàn đã được tạo",
+      `Bàn ${tableNumber} đã được tạo thành công.`
     )
   },
 
   tableUpdated: (tableNumber: string) => {
     return toastHelpers.success(
-      "Table Updated", 
-      `Table ${tableNumber} has been updated successfully.`
+      "Bàn đã được cập nhật", 
+      `Bàn ${tableNumber} đã được cập nhật thành công.`
     )
   },
 
   // Validation and form errors
   validationError: (message: string) => {
     return toastHelpers.error(
-      "Validation Error",
+      "Lỗi xác thực",
       message
     )
   },
 
   networkError: () => {
     return toastHelpers.error(
-      "Network Error",
-      "Please check your connection and try again."
+      "Lỗi kết nối",
+      "Vui lòng kiểm tra kết nối và thử lại."
     )
   },
 
   permissionDenied: () => {
     return toastHelpers.error(
-      "Permission Denied",
-      "You don't have permission to perform this action."
+      "Quyền truy cập bị từ chối",
+      "Bạn không có quyền thực hiện hành động này."
     )
   }
 }

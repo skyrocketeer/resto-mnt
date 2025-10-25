@@ -65,19 +65,18 @@ export interface Category {
 // Product Types
 export interface Product {
   id: string;
-  category_id?: string;
+  category_id: string;
   name: string;
   description?: string;
   price: number;
   image_url?: string;
   barcode?: string;
-  sku?: string;
-  is_available: boolean;
+  sku: string;
+  stock_number: number;
   preparation_time: number;
   sort_order: number;
   created_at: string;
   updated_at: string;
-  category?: Category;
 }
 
 // Table Types

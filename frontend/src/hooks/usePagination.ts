@@ -10,6 +10,7 @@ export interface PaginationControls {
   page: number
   pageSize: number
   totalPages: number
+  total: number
   hasNextPage: boolean
   hasPreviousPage: boolean
   goToPage: (page: number) => void
@@ -18,6 +19,7 @@ export interface PaginationControls {
   goToFirstPage: () => void
   goToLastPage: () => void
   setPageSize: (pageSize: number) => void
+  setTotal: (total: number) => void
 }
 
 export interface UsePaginationOptions {
@@ -33,10 +35,11 @@ export function usePagination({
 }: UsePaginationOptions = {}): PaginationControls {
   const [page, setPage] = useState(initialPage)
   const [pageSize, setPageSize] = useState(initialPageSize)
+  const [internalTotal, setInternalTotal] = useState(total)
 
   const totalPages = useMemo(() => {
-    return Math.max(1, Math.ceil(total / pageSize))
-  }, [total, pageSize])
+    return Math.max(1, Math.ceil(internalTotal / pageSize))
+  }, [internalTotal, pageSize])
 
   const hasNextPage = useMemo(() => {
     return page < totalPages
@@ -77,9 +80,19 @@ export function usePagination({
     setPage(1)
   }
 
+  const handleSetTotal = (newTotal: number) => {
+    setInternalTotal(newTotal)
+    // If current page is beyond the new total pages, go to last page
+    const newTotalPages = Math.max(1, Math.ceil(newTotal / pageSize))
+    if (page > newTotalPages) {
+      setPage(newTotalPages)
+    }
+  }
+
   return {
     page,
     pageSize,
+    total: internalTotal,
     totalPages,
     hasNextPage,
     hasPreviousPage,
@@ -89,6 +102,7 @@ export function usePagination({
     goToFirstPage,
     goToLastPage,
     setPageSize: handleSetPageSize,
+    setTotal: handleSetTotal,
   }
 }
 

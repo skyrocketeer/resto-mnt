@@ -478,7 +478,7 @@ export function CounterInterface() {
                       >
                         {table.table_number}
                         <span className="text-xs block">
-                          {table.seating_capacity} seats
+                          {table.capacity} seats
                         </span>
                       </Button>
                     ))}

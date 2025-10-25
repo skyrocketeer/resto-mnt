@@ -1,4 +1,4 @@
-import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
+import axios, { AxiosError, AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
 import type {
   APIResponse,
   PaginatedResponse,
@@ -88,8 +88,8 @@ class APIClient {
     try {
       const response: AxiosResponse<PaginatedResponse<T>> = await this.client.request(config);
       return response.data;
-    } catch (error) {
-      throw error
+    } catch (error: any) {
+      throw error as AxiosError
     }
   }
 
@@ -117,7 +117,7 @@ class APIClient {
   }
 
   // Product endpoints
-  async getProducts(filters?: ProductFilters): Promise<PaginatedResponse<Product[]>> {
+  async getProducts(filters?: ProductFilters): Promise<PaginatedResponse<Product>> {
     return this.requestWithPagination({
       method: 'GET',
       url: '/products',
@@ -132,7 +132,7 @@ class APIClient {
     });
   }
 
-  async getCategories(activeOnly = true): Promise<PaginatedResponse<Category[]>> {
+  async getCategories(activeOnly = true): Promise<PaginatedResponse<Category>> {
     return this.requestWithPagination({
       method: 'GET',
       url: '/categories',
@@ -140,7 +140,7 @@ class APIClient {
     });
   }
 
-  async getProductsByCategory(categoryId: string, availableOnly = true): Promise<PaginatedResponse<Product[]>> {
+  async getProductsByCategory(categoryId: string, availableOnly = true): Promise<PaginatedResponse<Product>> {
     return this.requestWithPagination({
       method: 'GET',
       url: `/categories/${categoryId}/products`,
@@ -149,7 +149,7 @@ class APIClient {
   }
 
   // Table endpoints
-  async getTables(filters?: TableFilters): Promise<PaginatedResponse<DiningTable[]>> {
+  async getTables(filters?: TableFilters): Promise<PaginatedResponse<DiningTable>> {
     return this.requestWithPagination({
       method: 'GET',
       url: '/tables',
@@ -164,7 +164,7 @@ class APIClient {
     });
   }
 
-  async getTablesByLocation(): Promise<APIResponse<any[]>> {
+  async getTablesByLocation(): Promise<APIResponse<DiningTable[]>> {
     return this.request({
       method: 'GET',
       url: '/tables/by-location',
@@ -202,8 +202,9 @@ class APIClient {
     });
   }
 
-  async updateOrderStatus(id: string, status: OrderStatus, notes?: string): Promise<APIResponse<Order>> {
-    const statusUpdate: UpdateOrderStatusRequest = { status, notes };
+  async updateOrderStatus(id: string, status: string, notes?: string): Promise<APIResponse<Order>> {
+    const orderStatus = status as OrderStatus;
+    const statusUpdate: UpdateOrderStatusRequest = { status: orderStatus, notes };
     return this.request({
       method: 'PATCH',
       url: `/orders/${id}/status`,
@@ -424,7 +425,7 @@ class APIClient {
   }
 
   // Admin tables endpoint with pagination
-  async getAdminTables(params?: { page?: number, limit?: number, search?: string, status?: string }): Promise<PaginatedResponse<DiningTable[]>> {
+  async getAdminTables(params?: { page?: number, limit?: number, search?: string, status?: string }): Promise<PaginatedResponse<DiningTable>> {
     return this.requestWithPagination({ 
       method: 'GET', 
       url: '/admin/tables',

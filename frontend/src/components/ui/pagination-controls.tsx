@@ -11,10 +11,10 @@ import {
 } from '@/components/ui/pagination'
 import { PaginationControls, getPaginationRange } from '@/hooks/usePagination'
 import { ChevronFirst, ChevronLast } from 'lucide-react'
+import { cn } from '@/lib/utils'
 
 interface PaginationControlsProps {
   pagination: PaginationControls
-  total: number
   showPageSizeSelector?: boolean
   pageSizeOptions?: number[]
   className?: string
@@ -22,15 +22,15 @@ interface PaginationControlsProps {
 
 export function PaginationControlsComponent({
   pagination,
-  total,
   showPageSizeSelector = true,
-  pageSizeOptions = [5, 10, 20, 50],
+  pageSizeOptions = [5, 10, 30],
   className,
 }: PaginationControlsProps) {
   const {
     page,
     pageSize,
     totalPages,
+    total,
     hasNextPage,
     hasPreviousPage,
     goToPage,
@@ -51,13 +51,12 @@ export function PaginationControlsComponent({
   }
 
   return (
-    <div className={`flex items-center justify-between space-x-2 ${className}`}>
+    <div className={`flex justify-between items-center ${className}`}>
       {/* Results info */}
-      <div className="flex items-center space-x-2">
-        <p className="text-sm text-muted-foreground">
+      <div className='flex flex-col items-center space-y-2'>
+        <span className="text-sm text-muted-foreground">
           Showing {startItem} to {endItem} of {total} results
-        </p>
-        
+        </span>
         {showPageSizeSelector && (
           <div className="flex items-center space-x-2">
             <p className="text-sm text-muted-foreground">Show</p>
@@ -81,73 +80,78 @@ export function PaginationControlsComponent({
         )}
       </div>
 
-      {/* Pagination controls */}
-      {totalPages > 1 && (
-        <div className="flex items-center space-x-2">
-          <Pagination>
-            <PaginationContent>
-              {/* First page button */}
-              <PaginationItem>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={goToFirstPage}
-                  disabled={!hasPreviousPage}
-                  aria-label="Go to first page"
-                >
-                  <ChevronFirst className="h-4 w-4" />
-                </Button>
-              </PaginationItem>
-
-              {/* Previous page button */}
-              <PaginationItem>
-                <PaginationPrevious
-                  onClick={goToPreviousPage}
-                  className={!hasPreviousPage ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
-                />
-              </PaginationItem>
-
-              {/* Page numbers */}
-              {paginationRange.map((pageNumber, index) => (
-                <PaginationItem key={index}>
-                  {pageNumber === '...' ? (
-                    <PaginationEllipsis />
-                  ) : (
-                    <PaginationLink
-                      onClick={() => goToPage(Number(pageNumber))}
-                      isActive={pageNumber === page}
-                      className="cursor-pointer"
-                    >
-                      {pageNumber}
-                    </PaginationLink>
-                  )}
+      <div>
+        {/* Pagination controls */}
+        {totalPages > 1 && (
+          <div className="flex items-center space-x-2">
+            <Pagination>
+              <PaginationContent>
+                {/* First page button */}
+                <PaginationItem>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={goToFirstPage}
+                    disabled={!hasPreviousPage}
+                    aria-label="Go to first page"
+                  >
+                    <ChevronFirst className="h-4 w-4" />
+                  </Button>
                 </PaginationItem>
-              ))}
 
-              {/* Next page button */}
-              <PaginationItem>
-                <PaginationNext
-                  onClick={goToNextPage}
-                  className={!hasNextPage ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
-                />
-              </PaginationItem>
+                {/* Previous page button */}
+                <PaginationItem>
+                  <PaginationPrevious
+                    onClick={goToPreviousPage}
+                    className={cn(!hasPreviousPage ? 'pointer-events-none opacity-50' : 'cursor-pointer')}
+                  />
+                </PaginationItem>
 
-              {/* Last page button */}
-              <PaginationItem>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={goToLastPage}
-                  disabled={!hasNextPage}
-                  aria-label="Go to last page"
-                >
-                  <ChevronLast className="h-4 w-4" />
-                </Button>
-              </PaginationItem>
-            </PaginationContent>
-          </Pagination>
-        </div>
-      )}
+                {/* Page numbers */}
+                {paginationRange.map((pageNumber, index) => (
+                  <PaginationItem key={index}>
+                    {pageNumber === '...' ? (
+                      <PaginationEllipsis>
+                        <span className="sr-only">More pages</span>
+                      </PaginationEllipsis>
+                    ) : (
+                      <PaginationLink
+                        onClick={() => goToPage(Number(pageNumber))}
+                        isActive={Number(pageNumber) === page}
+                        className={cn('cursor-pointer', Number(pageNumber) === page ? 'pointer-events-none' : '')}
+                      >
+                        {pageNumber}
+                      </PaginationLink>
+                    )}
+                  </PaginationItem>
+                ))}
+
+                {/* Next page button */}
+                <PaginationItem>
+                  <PaginationNext
+                    onClick={goToNextPage}
+                    className={cn(!hasNextPage ? 'pointer-events-none opacity-50' : 'cursor-pointer')}
+                  />
+                </PaginationItem>
+
+                {/* Last page button */}
+                <PaginationItem>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={goToLastPage}
+                    disabled={!hasNextPage}
+                    aria-label="Go to last page"
+                  >
+                    <ChevronLast className="h-4 w-4" />
+                  </Button>
+                </PaginationItem>
+              </PaginationContent>
+            </Pagination>
+          </div>
+        )}
+      </div>
+
     </div>
   )
 }

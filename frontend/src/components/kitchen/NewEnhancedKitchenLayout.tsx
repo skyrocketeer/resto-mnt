@@ -17,13 +17,11 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import apiClient from '@/api/client';
-import type { UserInfo, Order, OrderStatus } from '@/types';
+import { useUser } from '@/contexts/UserContext';
+import type { Order, OrderStatus } from '@/types';
 
-interface NewEnhancedKitchenLayoutProps {
-  user: UserInfo;
-}
-
-export function NewEnhancedKitchenLayout({ user }: NewEnhancedKitchenLayoutProps) {
+export function NewEnhancedKitchenLayout() {
+  const { user } = useUser();
   const [selectedTab, setSelectedTab] = useState('active-orders');
   const [autoRefresh, setAutoRefresh] = useState(true);
   const [showSoundSettings, setShowSoundSettings] = useState(false);
@@ -575,7 +573,7 @@ export function NewEnhancedKitchenLayout({ user }: NewEnhancedKitchenLayoutProps
               <div>
                 <h1 className="text-2xl font-bold text-gray-900">Kitchen Display</h1>
                 <p className="text-sm text-gray-500">
-                  Chef {user.first_name} • {stats.total} active orders
+                  Chef {user?.first_name} • {stats.total} active orders
                 </p>
               </div>
             </div>

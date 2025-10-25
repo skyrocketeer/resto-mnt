@@ -13,7 +13,7 @@ import {
   CookingPot,
   Utensils
 } from 'lucide-react'
-import type { UserInfo } from '@/types'
+
 import { useScreenSizeWithSidebar } from '@/hooks/useScreenSize'
 import { AdminDashboard } from './AdminDashboard'
 import { ServerInterface } from '@/components/server/ServerInterface'
@@ -26,10 +26,6 @@ import { AdminSettings } from './AdminSettings'
 import { AdminMenuManagement } from './AdminMenuManagement'
 import { AdminTableManagement } from './AdminTableManagement'
 import { AdminReports } from './AdminReports'
-
-interface AdminLayoutProps {
-  user: UserInfo
-}
 
 const adminSections = [
   {
@@ -89,7 +85,7 @@ const adminSections = [
   }
 ]
 
-export function AdminLayout({ user }: AdminLayoutProps) {
+export function AdminLayout() {
   const [currentSection, setCurrentSection] = useState('dashboard')
   const { isMobile, isTablet, sidebarCollapsed, setSidebarCollapsed } = useScreenSizeWithSidebar()
 
@@ -102,7 +98,7 @@ export function AdminLayout({ user }: AdminLayoutProps) {
       case 'counter':
         return <CounterInterface />
       case 'kitchen':
-        return <NewEnhancedKitchenLayout user={user} />
+        return <NewEnhancedKitchenLayout />
       case 'settings':
         return (
           <div className="space-y-8">
@@ -116,7 +112,7 @@ export function AdminLayout({ user }: AdminLayoutProps) {
       case 'menu':
         return <AdminMenuManagement />
       case 'tables':
-        return <AdminTableManagement userInfo={user} />
+        return <AdminTableManagement />
       case 'reports':
         return <AdminReports />
       default:

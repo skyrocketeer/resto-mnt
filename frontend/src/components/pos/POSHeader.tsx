@@ -14,10 +14,10 @@ import {
   ChefHat
 } from 'lucide-react'
 import apiClient from '@/api/client'
-import type { UserInfo, DiningTable } from '@/types'
+import { useUser } from '@/contexts/UserContext'
+import type { DiningTable } from '@/types'
 
 interface POSHeaderProps {
-  user: UserInfo
   selectedTable: DiningTable | null
   orderType: 'dine_in' | 'takeout' | 'delivery'
   onOrderTypeChange: (type: 'dine_in' | 'takeout' | 'delivery') => void
@@ -27,7 +27,6 @@ interface POSHeaderProps {
 }
 
 export function POSHeader({ 
-  user, 
   selectedTable, 
   orderType, 
   onOrderTypeChange, 
@@ -35,7 +34,7 @@ export function POSHeader({
   customerName,
   onCustomerNameChange
 }: POSHeaderProps) {
-  const [showUserMenu, setShowUserMenu] = useState(false)
+  const { user } = useUser()
   const [showPaymentHistory, setShowPaymentHistory] = useState(false)
 
   const handleLogout = async () => {
@@ -139,19 +138,19 @@ export function POSHeader({
           <div className="text-right">
             <div className="flex items-center gap-2">
               <span className="text-sm font-medium text-gray-900">
-                {user.first_name} {user.last_name}
+                {user?.first_name || ''} {user?.last_name || ''}
               </span>
-              <Badge className={getRoleBadgeColor(user.role)}>
-                {user.role}
+              <Badge className={getRoleBadgeColor(user?.role || '')}>
+                {user?.role || ''}
               </Badge>
             </div>
-            <p className="text-xs text-gray-500">{user.email}</p>
+            <p className="text-xs text-gray-500">{user?.email || ''}</p>
           </div>
 
           {/* User Actions */}
           <div className="flex items-center gap-2">
             {/* Payment History Access */}
-            {(user.role === 'admin' || user.role === 'cashier') && (
+            {(user?.role === 'admin' || user?.role === 'cashier') && (
               <Button 
                 variant="ghost" 
                 size="sm" 
@@ -165,7 +164,7 @@ export function POSHeader({
             )}
 
             {/* Kitchen Display Access */}
-            {(user.role === 'kitchen' || user.role === 'admin' || user.role === 'manager') && (
+            {(user?.role === 'kitchen' || user?.role === 'admin' || user?.role === 'manager') && (
               <Button 
                 variant="ghost" 
                 size="sm" 

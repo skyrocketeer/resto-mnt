@@ -323,7 +323,6 @@ export function AdminStaffManagement() {
           )}
           <PaginationControlsComponent
             pagination={pagination}
-            total={paginationInfo.total || users.length}
           />
         </div>
       )}

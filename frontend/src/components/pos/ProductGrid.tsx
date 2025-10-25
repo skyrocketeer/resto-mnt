@@ -1,7 +1,7 @@
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
-import { Plus, Clock, Loader2, Package } from 'lucide-react'
+import { Plus, Clock, Package } from 'lucide-react'
 import { formatCurrency, getPreparationTimeDisplay } from '@/lib/utils'
 import type { Product } from '@/types'
 

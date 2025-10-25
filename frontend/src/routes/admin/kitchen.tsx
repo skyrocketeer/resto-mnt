@@ -1,29 +1,29 @@
-import { createFileRoute } from '@tanstack/react-router'
-import { useState, useEffect } from 'react'
+import { createFileRoute, Navigate } from '@tanstack/react-router'
 import { NewEnhancedKitchenLayout } from '@/components/kitchen/NewEnhancedKitchenLayout'
-import type { UserInfo } from '@/types'
+import apiClient from '@/api/client'
+import { useUser } from '@/contexts/UserContext'
 
 export const Route = createFileRoute('/admin/kitchen')({
   component: AdminKitchenPage,
 })
 
 function AdminKitchenPage() {
-  const [user, setUser] = useState<UserInfo | null>(null)
+  const { user, isLoading } = useUser()
 
-  useEffect(() => {
-    const storedUser = localStorage.getItem('pos_user')
-    if (storedUser) {
-      try {
-        setUser(JSON.parse(storedUser))
-      } catch (error) {
-        console.error('Failed to parse stored user:', error)
-      }
-    }
-  }, [])
-
-  if (!user) {
-    return <div>Loading...</div>
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading Kitchen Panel...</p>
+        </div>
+      </div>
+    )
   }
 
-  return <NewEnhancedKitchenLayout user={user} />
+  if (!apiClient.isAuthenticated() || !user) {
+    return <Navigate to="/login" />
+  }
+
+  return <NewEnhancedKitchenLayout />
 }

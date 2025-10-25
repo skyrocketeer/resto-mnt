@@ -1,17 +1,12 @@
-import { useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
-// import { POSHeader } from './POSHeader'
-import { CategorySidebar } from './CategorySidebar'
-import { ProductGrid } from './ProductGrid'
-import { OrderCart } from './OrderCart'
-import { TableSelectionModal } from './TableSelectionModal'
-// Clean imports for debugging
-import apiClient from '@/api/client'
-import type { UserInfo, Product, CartItem, DiningTable } from '@/types'
-
-interface POSLayoutProps {
-  user: UserInfo
-}
+import apiClient from "@/api/client"
+import { useUser } from "@/contexts/UserContext"
+import { CartItem, DiningTable, Product } from "@/types"
+import { useQuery } from "@tanstack/react-query"
+import { useState } from "react"
+import { ProductGrid } from "./ProductGrid"
+import { OrderCart } from "./OrderCart"
+import { TableSelectionModal } from "./TableSelectionModal"
+import { CategorySidebar } from "./CategorySidebar"
 
 export function POSLayout() {
   // State management

@@ -4,13 +4,9 @@ import { KitchenHeader } from './KitchenHeader'
 import { KitchenOrderCard } from './KitchenOrderCard'
 import { OrderFilters } from './OrderFilters'
 import apiClient from '@/api/client'
-import type { UserInfo, Order, OrderStatus } from '@/types'
+import type { Order, OrderStatus } from '@/types'
 
-interface KitchenLayoutProps {
-  user: UserInfo
-}
-
-export function KitchenLayout({ user }: KitchenLayoutProps) {
+export function KitchenLayout() {
   const [selectedStatus, setSelectedStatus] = useState<string>('all')
   const [searchQuery, setSearchQuery] = useState('')
   const [autoRefresh, setAutoRefresh] = useState(true)
@@ -73,7 +69,6 @@ export function KitchenLayout({ user }: KitchenLayoutProps) {
     <div className="h-screen flex flex-col bg-gray-50">
       {/* Kitchen Header */}
       <KitchenHeader 
-        user={user}
         autoRefresh={autoRefresh}
         onToggleAutoRefresh={setAutoRefresh}
         onRefresh={handleRefresh}

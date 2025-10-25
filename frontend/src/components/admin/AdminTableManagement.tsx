@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -23,12 +23,14 @@ import { PaginationControlsComponent } from '@/components/ui/pagination-controls
 import { usePagination } from '@/hooks/usePagination'
 import { TableGridSkeleton, SearchingSkeleton, FilteringSkeleton, StatsCardSkeleton } from '@/components/ui/skeletons'
 import { InlineLoading } from '@/components/ui/loading-spinner'
-import type { APIResponse, DiningTable, UserInfo } from '@/types'
+import { useUser } from '@/contexts/UserContext'
+import type { APIResponse, DiningTable } from '@/types'
 import { getStatusLabel } from '@/lib/utils'
 
 type ViewMode = 'list' | 'table-form'
 
-export function AdminTableManagement({ userInfo }: { userInfo: UserInfo }) {
+export function AdminTableManagement() {
+  const { user: userInfo } = useUser()
   const [viewMode, setViewMode] = useState<ViewMode>('list')
   const [searchTerm, setSearchTerm] = useState('')
   const [debouncedSearch, setDebouncedSearch] = useState('')
@@ -43,7 +45,7 @@ export function AdminTableManagement({ userInfo }: { userInfo: UserInfo }) {
   // Pagination hook
   const pagination = usePagination({ 
     initialPage: 1, 
-    initialPageSize: 12,
+    initialPageSize: 5,
     total: 0 
   })
 
@@ -51,23 +53,31 @@ export function AdminTableManagement({ userInfo }: { userInfo: UserInfo }) {
   useEffect(() => {
     if (searchTerm !== debouncedSearch) {
       setIsSearching(true)
+      const timer = setTimeout(() => {
+        setDebouncedSearch(searchTerm)
+        // Only reset to first page when search term actually changes
+        if (searchTerm.trim() !== debouncedSearch.trim()) {
+          pagination.goToFirstPage()
+        }
+        setIsSearching(false)
+      }, 500)
+      return () => clearTimeout(timer)
     }
-    const timer = setTimeout(() => {
-      setDebouncedSearch(searchTerm)
-      pagination.goToFirstPage()
-      setIsSearching(false)
-    }, 500)
-    return () => clearTimeout(timer)
-  }, [searchTerm, debouncedSearch])
+  }, [searchTerm, debouncedSearch, pagination])
 
+  const prevFilterStatus = useRef(filterStatus)
+  
   // Reset pagination when status filter changes
   useEffect(() => {
-    if (filterStatus !== 'all') {
-      setIsFiltering(true)
-      setTimeout(() => setIsFiltering(false), 300)
+    if (filterStatus !== prevFilterStatus.current) {
+      if (filterStatus !== 'all') {
+        setIsFiltering(true)
+        setTimeout(() => setIsFiltering(false), 300)
+      }
+      pagination.goToFirstPage()
+      prevFilterStatus.current = filterStatus
     }
-    pagination.goToFirstPage()
-  }, [filterStatus])
+  }, [filterStatus, pagination])
 
   const { data: tablesData, isLoading, isFetching } = useQuery({
     queryKey: [
@@ -84,32 +94,46 @@ export function AdminTableManagement({ userInfo }: { userInfo: UserInfo }) {
         search: debouncedSearch || undefined,
         status: filterStatus !== 'all' ? filterStatus : undefined,
       }
-
-      if (isAdmin) {
-        return await apiClient.getAdminTables(params)
+      try {
+        if (isAdmin) {
+          return await apiClient.getAdminTables(params)
+          .then(res => {
+            toastHelpers.apiSuccess('lấy dữ liệu', 'dữ liệu bàn ăn')
+            return res
+          })
+        }
+        return await apiClient.getTables()
+      } catch (error: any) {
+        console.log(error)
+        if(error.response?.status === 403) {
+          toastHelpers.permissionDenied()
+        } else {
+          toastHelpers.apiError('lấy dữ liệu', 'Đã có lỗi khi xảy ra khi lấy dữ liệu bàn ăn')
+        }
       }
-      return await apiClient.getTables()
     },
     enabled: !!userInfo, // only run when user info is loaded
   })
 
   // Extract data and pagination info
-  const tables = Array.isArray(tablesData?.data?.tables)
-    ? tablesData.data.tables.flat() as DiningTable[]
-    : [] as DiningTable[]
-  const paginationInfo = tablesData?.data?.pagination ?? {
-    limit: 0,
-    current_page: 1,
-    total: 0,
-    total_pages: 0,
-  }
+  const { tables, paginationInfo } = useMemo(() => {
+    const tables = Array.isArray(tablesData?.data.tables)
+      ? tablesData?.data.tables as DiningTable[] : [] as DiningTable[]
+    const paginationInfo = tablesData?.data?.pagination ?? {
+      limit: 0,
+      current_page: 1,
+      total: 0,
+      total_pages: 0,
+    }
+    return { tables, paginationInfo }
+  }, [tablesData])
 
   // Update pagination total
   useEffect(() => {
-    if (paginationInfo.total !== undefined) {
-      pagination.goToPage(pagination.page)
+    if (paginationInfo.total !== undefined && paginationInfo.total !== pagination.total) {
+      pagination.setTotal(paginationInfo.total)
     }
-  }, [paginationInfo.total])
+  }, [paginationInfo.total, pagination.total])
 
   // Delete table mutation
   const deleteTableMutation = useMutation({
@@ -454,8 +478,6 @@ export function AdminTableManagement({ userInfo }: { userInfo: UserInfo }) {
           )}
           <PaginationControlsComponent
             pagination={pagination}
-            total={paginationInfo.total || tables.length}
-            pageSizeOptions={[6, 12, 24, 48]}
           />
         </div>
       )}

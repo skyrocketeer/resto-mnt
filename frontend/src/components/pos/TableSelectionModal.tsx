@@ -12,6 +12,7 @@ import {
   Clock
 } from 'lucide-react'
 import type { DiningTable } from '@/types'
+import { getStatusLabel } from '@/lib/utils'
 
 interface TableSelectionModalProps {
   tables: DiningTable[]
@@ -53,21 +54,17 @@ export function TableSelectionModal({
   }, {} as Record<string, DiningTable[]>)
 
   const getTableStatusColor = (table: DiningTable) => {
-    if (table.is_occupied) {
+    if (table.status === 'occupied') {
       return 'bg-red-100 border-red-200 text-red-800'
     }
     return 'bg-green-100 border-green-200 text-green-800'
   }
 
   const getTableStatusIcon = (table: DiningTable) => {
-    if (table.is_occupied) {
+    if (table.status === 'occupied') {
       return <Clock className="w-4 h-4" />
     }
     return <CheckCircle className="w-4 h-4" />
-  }
-
-  const getTableStatusText = (table: DiningTable) => {
-    return table.is_occupied ? 'Occupied' : 'Available'
   }
 
   return isOpen && (
@@ -152,11 +149,11 @@ export function TableSelectionModal({
                             ? 'ring-2 ring-blue-500 border-blue-200'
                             : ''
                         } ${
-                          table.is_occupied
+                          table.status === 'occupied'
                             ? 'opacity-60 cursor-not-allowed'
                             : ''
                         }`}
-                        onClick={() => !table.is_occupied && onTableSelect(table)}
+                        onClick={() => table.status !== 'occupied' && onTableSelect(table)}
                       >
                         <CardContent className="p-4 text-center">
                           <div className="space-y-3">
@@ -171,7 +168,7 @@ export function TableSelectionModal({
                             <div className="space-y-2">
                               <div className="flex items-center justify-center gap-1 text-sm text-gray-600">
                                 <Users className="w-4 h-4" />
-                                <span>{table.seating_capacity} seats</span>
+                                <span>{table.capacity} seats</span>
                               </div>
 
                               {/* Status Badge */}
@@ -181,7 +178,7 @@ export function TableSelectionModal({
                                 }`}
                               >
                                 {getTableStatusIcon(table)}
-                                {getTableStatusText(table)}
+                                {getStatusLabel(table.status)}
                               </Badge>
                             </div>
 
@@ -209,7 +206,7 @@ export function TableSelectionModal({
               {selectedTable ? (
                 <span>
                   Selected: Table {selectedTable.table_number} 
-                  ({selectedTable.seating_capacity} seats, {selectedTable.location || 'General'})
+                  ({selectedTable.capacity} seats, {selectedTable.location || 'General'})
                 </span>
               ) : (
                 <span>No table selected</span>

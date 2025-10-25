@@ -708,7 +708,7 @@ func (h *AdminHandler) UpdateTable(c *gin.Context) {
 
 	var req struct {
 		TableNumber *string `json:"table_number"`
-		Capacity    *int    `json:"seating_capacity"`
+		Capacity    *int    `json:"capacity"`
 		Location    *string `json:"location"`
 		Status    	*string   `json:"status"`
 	}

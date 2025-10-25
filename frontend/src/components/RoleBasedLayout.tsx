@@ -12,20 +12,17 @@ import {
   ShoppingCart,
   LogOut,
 } from 'lucide-react'
-import type { UserInfo } from '@/types'
 import apiClient from '@/api/client'
 import { useScreenSizeWithSidebar } from '@/hooks/useScreenSize'
 import { UserMenu } from './ui/user-menu'
+import { useUser } from '@/contexts/UserContext'
 
-interface RoleBasedLayoutProps {
-  user: UserInfo
-}
-
-export function RoleBasedLayout({ user }: RoleBasedLayoutProps) {
-  const [currentView, setCurrentView] = useState<string>(getDefaultView(user.role))
+export function RoleBasedLayout() {
+  const { user } = useUser()
+  const [currentView, setCurrentView] = useState<string>(getDefaultView(user?.role))
   const { isMobile, isTablet } = useScreenSizeWithSidebar()
 
-  function getDefaultView(role: string): string {
+  function getDefaultView(role?: string): string {
     switch (role) {
       case 'admin':
       case 'manager':
@@ -37,7 +34,7 @@ export function RoleBasedLayout({ user }: RoleBasedLayoutProps) {
       case 'kitchen':
         return 'kitchen'
       default:
-        return 'pos' // fallback to general POS interface
+        return 'pos'
     }
   }
 
@@ -47,7 +44,7 @@ export function RoleBasedLayout({ user }: RoleBasedLayoutProps) {
   }
 
   // Get available views based on user role
-  const getAvailableViews = (role: string) => {
+  const getAvailableViews = (role?: string) => {
     const views = []
 
     // Admin and managers get all views
@@ -87,22 +84,22 @@ export function RoleBasedLayout({ user }: RoleBasedLayoutProps) {
     return views
   }
 
-  const availableViews = getAvailableViews(user.role)
+  const availableViews = getAvailableViews(user?.role)
 
   const renderCurrentView = () => {
     switch (currentView) {
       case 'dashboard':
-        return <AdminLayout user={user} />
+        return <AdminLayout />
       case 'server':
         return <ServerInterface />
       case 'counter':
         return <CounterInterface />
       case 'kitchen':
-        return <NewEnhancedKitchenLayout user={user} />
+        return <NewEnhancedKitchenLayout />
       case 'pos':
-        return <POSLayout user={user} />
+        return <POSLayout />
       default:
-        return <POSLayout user={user} />
+        return <POSLayout />
     }
   }
 
@@ -148,7 +145,6 @@ export function RoleBasedLayout({ user }: RoleBasedLayoutProps) {
             {/* User Info */}
             <div className="flex items-center gap-3">
               <UserMenu
-                user={user}
                 size={isTablet ? 'lg' : 'md'}
               />
             </div>

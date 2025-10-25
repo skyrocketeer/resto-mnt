@@ -15,11 +15,7 @@ import {
   ChevronLeft,
   ChevronRight
 } from 'lucide-react'
-import type { UserInfo } from '@/types'
-
-interface AdminSidebarProps {
-  user: UserInfo
-}
+import { useUser } from '@/contexts/UserContext'
 
 const adminSections = [
   {
@@ -87,7 +83,7 @@ const adminSections = [
   }
 ]
 
-export function AdminSidebar({ user }: AdminSidebarProps) {
+export function AdminSidebar() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [isMobile, setIsMobile] = useState(false)
   const [isTablet, setIsTablet] = useState(false)

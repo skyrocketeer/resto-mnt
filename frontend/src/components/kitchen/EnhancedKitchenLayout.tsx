@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -21,18 +21,17 @@ import { TakeawayBoard } from './TakeawayBoard';
 import { SoundSettings } from './SoundSettings';
 import { kitchenSoundService } from '@/services/soundService';
 import apiClient from '@/api/client';
-import type { User, Order } from '@/types';
+import { useUser } from '@/contexts/UserContext';
+import type { Order } from '@/types';
 
-interface EnhancedKitchenLayoutProps {
-  user: User;
-}
-
-export function EnhancedKitchenLayout({ user }: EnhancedKitchenLayoutProps) {
+export function EnhancedKitchenLayout() {
+  const { user } = useUser();
   const [selectedTab, setSelectedTab] = useState('active-orders');
   const [autoRefresh, setAutoRefresh] = useState(true);
   const [showSoundSettings, setShowSoundSettings] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [previousOrderIds, setPreviousOrderIds] = useState<Set<string>>(new Set());
+  const previousOrderIdsRef = useRef<Set<string>>(new Set());
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
 
   // Initialize sound service
@@ -45,24 +44,33 @@ export function EnhancedKitchenLayout({ user }: EnhancedKitchenLayoutProps) {
     setSoundEnabled(settings.enabled);
   }, []);
 
+  // Sync ref with state
+  useEffect(() => {
+    previousOrderIdsRef.current = previousOrderIds;
+  }, [previousOrderIds]);
+
   // Fetch kitchen orders with smart polling
   const { data: ordersResponse, isLoading, refetch, error } = useQuery({
     queryKey: ['enhancedKitchenOrders'],
     queryFn: () => apiClient.getKitchenOrders('all'),
     refetchInterval: autoRefresh ? 3000 : false, // 3-second refresh for balance
     select: (data) => data.data || [],
-    onSuccess: (data) => {
+  });
+
+  // Handle new orders and sound notifications
+  useEffect(() => {
+    if (ordersResponse && ordersResponse.length > 0) {
       setLastRefresh(new Date());
       
       // Check for new orders and play sound
-      const currentOrders = data || [];
-      const currentOrderIds = new Set(currentOrders.map((order: Order) => order.id));
+      const currentOrders = ordersResponse || [];
+      const currentOrderIds: Set<string> = new Set(currentOrders.map((order: Order) => order.id));
       const newOrderIds = currentOrders
-        .filter((order: Order) => !previousOrderIds.has(order.id) && order.status === 'confirmed')
+        .filter((order: Order) => !previousOrderIdsRef.current.has(order.id) && order.status === 'confirmed')
         .map((order: Order) => order.id);
       
       // Play sound for new orders
-      newOrderIds.forEach(async (orderId) => {
+      newOrderIds.forEach(async (orderId: string) => {
         try {
           await kitchenSoundService.playNewOrderSound(orderId);
         } catch (error) {
@@ -71,10 +79,10 @@ export function EnhancedKitchenLayout({ user }: EnhancedKitchenLayoutProps) {
       });
       
       setPreviousOrderIds(currentOrderIds);
-    },
-  });
+    }
+  }, [ordersResponse]);
 
-  const orders = ordersResponse || [];
+  const orders: Order[] = ordersResponse || [];
 
   // Group orders by status for better organization
   const ordersByStatus = {
@@ -146,7 +154,7 @@ export function EnhancedKitchenLayout({ user }: EnhancedKitchenLayoutProps) {
             <div>
               <h1 className="text-xl font-bold">Kitchen Display</h1>
               <p className="text-sm text-muted-foreground">
-                {user.first_name} • {getTimeSinceRefresh()}
+                {user?.first_name} • {getTimeSinceRefresh()}
               </p>
             </div>
           </div>

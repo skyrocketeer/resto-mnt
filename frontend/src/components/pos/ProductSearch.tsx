@@ -121,11 +121,9 @@ export function ProductSearch({
   }
 
   const getStockStatus = (product: Product) => {
-    // Mock stock levels - replace with real data
-    const mockStock = Math.floor(Math.random() * 50) + 1
-    if (mockStock <= 5) return { status: 'low', count: mockStock, color: 'bg-red-100 text-red-700' }
-    if (mockStock <= 15) return { status: 'medium', count: mockStock, color: 'bg-yellow-100 text-yellow-700' }
-    return { status: 'good', count: mockStock, color: 'bg-green-100 text-green-700' }
+    if (product.stock_number <= 5) return { status: 'low', count: product.stock_number, color: 'bg-red-100 text-red-700' }
+    if (product.stock_number <= 15) return { status: 'medium', count: product.stock_number, color: 'bg-yellow-100 text-yellow-700' }
+    return { status: 'good', count: product.stock_number, color: 'bg-green-100 text-green-700' }
   }
 
   return (
@@ -200,7 +198,7 @@ export function ProductSearch({
                               <DollarSign className="h-3 w-3" />
                               {formatCurrency(product.price)}
                             </span>
-                            {product.available && (
+                            {product.stock_number > 0 && (
                               <Badge variant="outline" className="text-xs">
                                 <Package className="h-3 w-3 mr-1" />
                                 Available

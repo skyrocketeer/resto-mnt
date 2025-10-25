@@ -12,7 +12,6 @@ const Pagination = ({ className, ...props }: React.ComponentProps<"nav">) => (
     {...props}
   />
 )
-Pagination.displayName = "Pagination"
 
 const PaginationContent = React.forwardRef<
   HTMLUListElement,
@@ -24,7 +23,6 @@ const PaginationContent = React.forwardRef<
     {...props}
   />
 ))
-PaginationContent.displayName = "PaginationContent"
 
 const PaginationItem = React.forwardRef<
   HTMLLIElement,
@@ -32,7 +30,6 @@ const PaginationItem = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <li ref={ref} className={cn("", className)} {...props} />
 ))
-PaginationItem.displayName = "PaginationItem"
 
 type PaginationLinkProps = {
   isActive?: boolean
@@ -43,26 +40,34 @@ const PaginationLink = ({
   className,
   isActive,
   size = "icon",
+  onClick,
+  children,
   ...props
-}: PaginationLinkProps) => (
+}: PaginationLinkProps & { onClick?: () => void; children: React.ReactNode }) => (
   <a
+    onClick={(e) => {
+      e.preventDefault()
+      onClick?.()
+    }}
     aria-current={isActive ? "page" : undefined}
     className={cn(
       buttonVariants({
         variant: isActive ? "outline" : "ghost",
         size,
       }),
+      "cursor-pointer",
       className
     )}
     {...props}
-  />
+  >
+    {children}
+  </a>
 )
-PaginationLink.displayName = "PaginationLink"
 
 const PaginationPrevious = ({
   className,
   ...props
-}: React.ComponentProps<typeof PaginationLink>) => (
+}: { className?: string; onClick?: () => void }) => (
   <PaginationLink
     aria-label="Go to previous page"
     size="default"
@@ -73,12 +78,11 @@ const PaginationPrevious = ({
     <span>Previous</span>
   </PaginationLink>
 )
-PaginationPrevious.displayName = "PaginationPrevious"
 
 const PaginationNext = ({
   className,
   ...props
-}: React.ComponentProps<typeof PaginationLink>) => (
+}: { className?: string; onClick?: () => void }) => (
   <PaginationLink
     aria-label="Go to next page"
     size="default"
@@ -89,7 +93,6 @@ const PaginationNext = ({
     <ChevronRight className="h-4 w-4" />
   </PaginationLink>
 )
-PaginationNext.displayName = "PaginationNext"
 
 const PaginationEllipsis = ({
   className,
@@ -104,7 +107,6 @@ const PaginationEllipsis = ({
     <span className="sr-only">More pages</span>
   </span>
 )
-PaginationEllipsis.displayName = "PaginationEllipsis"
 
 export {
   Pagination,

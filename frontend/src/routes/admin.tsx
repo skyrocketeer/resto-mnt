@@ -1,7 +1,6 @@
 import { createFileRoute, Navigate, Outlet } from '@tanstack/react-router'
-import { useState, useEffect } from 'react'
+import { useUser } from '@/contexts/UserContext'
 import apiClient from '@/api/client'
-import type { UserInfo } from '@/types'
 import { AdminSidebar } from '@/components/admin/AdminSidebar'
 
 export const Route = createFileRoute('/admin')({
@@ -9,25 +8,7 @@ export const Route = createFileRoute('/admin')({
 })
 
 function AdminLayout() {
-  const [user, setUser] = useState<UserInfo | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
-
-  useEffect(() => {
-    const storedUser = localStorage.getItem('pos_user')
-    const token = localStorage.getItem('pos_token')
-    
-    if (storedUser && token) {
-      try {
-        const parsedUser = JSON.parse(storedUser)
-        setUser(parsedUser)
-      } catch (error) {
-        console.error('Failed to parse stored user:', error)
-        localStorage.removeItem('pos_user')
-        localStorage.removeItem('pos_token')
-      }
-    }
-    setIsLoading(false)
-  }, [])
+  const { user, isLoading } = useUser()
 
   // Show loading while checking auth
   if (isLoading) {
@@ -61,7 +42,7 @@ function AdminLayout() {
 
   return (
     <div className="min-h-screen bg-background flex">
-      <AdminSidebar user={user} />
+      <AdminSidebar />
       <main className="flex-1 overflow-auto">
         <Outlet />
       </main>

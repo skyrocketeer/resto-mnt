@@ -1,44 +1,17 @@
 import { createFileRoute, Navigate } from '@tanstack/react-router';
-import { useState, useEffect } from 'react';
 import apiClient from '@/api/client';
 import { NewEnhancedKitchenLayout } from '@/components/kitchen/NewEnhancedKitchenLayout';
-import type { UserInfo } from '@/types';
+import { useUser } from '@/contexts/UserContext';
 
 export const Route = createFileRoute('/kitchen')({
   component: KitchenPage,
 });
 
 function KitchenPage() {
-  const [user, setUser] = useState<UserInfo | null>(null);
-  const [isLoadingAuth, setIsLoadingAuth] = useState(true);
-
-  useEffect(() => {
-    const loadAuthState = async () => {
-      const token = localStorage.getItem('pos_token');
-      const storedUser = localStorage.getItem('pos_user');
-      
-      console.log('🔍 Loading kitchen auth - token:', token ? 'exists' : 'missing');
-      console.log('🔍 Loading kitchen auth - user:', storedUser ? 'exists' : 'missing');
-      
-      if (storedUser && token) {
-        try {
-          const parsedUser = JSON.parse(storedUser);
-          setUser(parsedUser);
-          console.log('✅ Kitchen auth loaded - user role:', parsedUser.role);
-        } catch (error) {
-          console.error('❌ Invalid stored auth data, clearing');
-          apiClient.clearAuth();
-        }
-      }
-      
-      setIsLoadingAuth(false);
-    };
-    
-    loadAuthState();
-  }, []);
+  const { user, isLoading } = useUser();
 
   // Loading state
-  if (isLoadingAuth) {
+  if (isLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
@@ -79,5 +52,5 @@ function KitchenPage() {
     );
   }
 
-  return <NewEnhancedKitchenLayout user={user} />;
+  return <NewEnhancedKitchenLayout />;
 }
