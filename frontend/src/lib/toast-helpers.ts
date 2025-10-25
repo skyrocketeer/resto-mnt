@@ -89,7 +89,7 @@ export const toastHelpers = {
     )
   },
 
-  productDeleted: (productName: string) => {
+  productDeleted: (productName: string = 'Sản phẩm') => {
     return toastHelpers.success(
       "Sản phẩm đã được xóa",
       `"${productName}" đã được xóa thành công.`

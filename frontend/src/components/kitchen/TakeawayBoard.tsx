@@ -34,16 +34,15 @@ export function TakeawayBoard({
     queryFn: () => apiClient.getOrders({
       order_type: 'takeout',
       status: ['ready'],
-    }),
-    refetchInterval: autoRefresh ? 2000 : false, // 2-second refresh for real-time updates
-    select: (data) => data.data || [],
+    }).then(response => response.data.order || []),
+    refetchInterval: autoRefresh ? 200000 : false
   });
 
-  const orders: TakeawayOrder[] = (ordersResponse || []).map(order => ({
+  const orders: TakeawayOrder[] = ordersResponse?.map(order => ({
     ...order,
     waitTime: calculateWaitTime(order.created_at),
     isNewlyReady: !previousReadyOrders.has(order.id),
-  }));
+  })) || [];
 
   // Calculate wait time in minutes
   function calculateWaitTime(createdAt: string): number {

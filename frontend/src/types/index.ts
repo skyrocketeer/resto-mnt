@@ -56,6 +56,7 @@ export interface Category {
   name: string;
   description?: string;
   color?: string;
+  image_url?: string;
   sort_order: number;
   is_active: boolean;
   created_at: string;
@@ -111,7 +112,7 @@ export interface Order {
   table?: DiningTable;
   user?: UserInfo;
   items?: OrderItem[];
-  payments?: Payment[];
+  payment_id?: string;
 }
 
 export interface OrderItem {
@@ -161,7 +162,6 @@ export interface UpdateOrderStatusRequest {
 // Payment Types
 export interface Payment {
   id: string;
-  order_id: string;
   payment_method: 'cash' | 'credit_card' | 'debit_card' | 'digital_wallet';
   amount: number;
   reference_number?: string;
@@ -169,7 +169,6 @@ export interface Payment {
   processed_by?: string;
   processed_at?: string;
   created_at: string;
-  processed_by_user?: UserInfo;
 }
 
 export interface ProcessPaymentRequest {
@@ -190,7 +189,7 @@ export interface PaymentSummary {
 
 // Cart Types (Frontend Only)
 export interface CartItem {
-  product: Product;
+  product: Partial<Product>;
   quantity: number;
   special_instructions?: string;
 }

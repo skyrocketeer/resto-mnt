@@ -56,12 +56,12 @@ export function CategoryForm({ category, onSuccess, onCancel, mode = 'create' }:
       queryClient.invalidateQueries({ queryKey: ['admin-categories'] })
       queryClient.invalidateQueries({ queryKey: ['categories'] })
       queryClient.invalidateQueries({ queryKey: ['admin-products'] })
-      toastHelpers.categoryCreated(form.getValues('name'))
+      toastHelpers.categoryCreated(form.getValues('name') || '')
       form.reset()
       onSuccess?.()
     },
     onError: (error) => {
-      toastHelpers.apiError('Create category', error)
+      toastHelpers.apiError('Tạo mới danh mục', error.message)
     },
   })
 
@@ -76,7 +76,7 @@ export function CategoryForm({ category, onSuccess, onCancel, mode = 'create' }:
       onSuccess?.()
     },
     onError: (error) => {
-      toastHelpers.apiError('Update category', error)
+      toastHelpers.apiError('Cập nhật thông tin danh mục', error.message)
     },
   })
 

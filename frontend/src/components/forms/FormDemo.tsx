@@ -30,9 +30,9 @@ export function FormDemo() {
       name: '',
       description: '',
       price: 0,
-      category_id: 1,
+      category_id: '',
       image_url: '',
-      status: 'active',
+      // status: 'active',
       preparation_time: 5,
     },
   })
@@ -110,15 +110,15 @@ export function FormDemo() {
                   description="Optional product image"
                 />
                 
-                <SelectField
+                {/* <SelectField
                   control={form.control}
                   name="status"
                   label="Status"
                   options={productStatusOptions}
-                />
-                
+                /> */}
+
                 <FormSubmitButton className="w-full">
-                  Create Product
+                  Tạo sản phẩm
                 </FormSubmitButton>
               </form>
             </Form>

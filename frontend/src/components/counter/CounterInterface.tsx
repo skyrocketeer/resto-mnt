@@ -354,14 +354,14 @@ export function CounterInterface() {
                               {product.preparation_time}min
                             </Badge>
                           )}
-                          {!product.is_available && (
+                          {product.stock_number <= 0 && (
                             <Badge variant="secondary" className="text-xs">
                               Unavailable
                             </Badge>
                           )}
                         </div>
 
-                        {product.is_available && (
+                        {product.stock_number > 0 && (
                           <div className="flex items-center gap-2">
                             {cartItem ? (
                               <div className="flex items-center gap-2">

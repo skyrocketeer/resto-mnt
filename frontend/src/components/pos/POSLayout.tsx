@@ -117,7 +117,7 @@ export function POSLayout() {
   // })
 
   // Calculate totals
-  const subtotal = cart.reduce((sum, item) => sum + (item.product.price * item.quantity), 0)
+  const subtotal = cart.reduce((sum, item) => sum + ((item?.product?.price || 0) * item.quantity), 0)
   const taxAmount = subtotal * 0.10 // 10% tax
   const totalAmount = subtotal + taxAmount
 

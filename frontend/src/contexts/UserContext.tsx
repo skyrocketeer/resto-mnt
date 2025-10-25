@@ -38,6 +38,26 @@ export function UserProvider({ children }: UserProviderProps) {
     };
 
     initializeUser();
+
+    // Listen for storage changes to update user data when login occurs
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'pos_user' || e.key === 'pos_token') {
+        initializeUser();
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    
+    // Also listen for custom events that might indicate login/logout
+    const handleLogin = () => initializeUser();
+    window.addEventListener('userLogin', handleLogin);
+    window.addEventListener('userLogout', handleLogin);
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('userLogin', handleLogin);
+      window.removeEventListener('userLogout', handleLogin);
+    };
   }, []);
 
   const logout = async () => {

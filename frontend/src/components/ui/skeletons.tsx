@@ -1,4 +1,4 @@
-import { Skeleton } from "@/components/ui/skeleton"
+import { cn } from "@/lib/utils"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 
 // Basic skeleton building blocks
@@ -12,6 +12,18 @@ export function SkeletonCircle({ className = "h-10 w-10 rounded-full" }: { class
 
 export function SkeletonButton({ className = "h-9 w-20" }: { className?: string }) {
   return <Skeleton className={className} />
+}
+
+function Skeleton({
+  className,
+  ...props
+}: React.HTMLAttributes<HTMLDivElement>) {
+  return (
+    <div
+      className={cn("animate-pulse rounded-md bg-muted", className)}
+      {...props}
+    />
+  )
 }
 
 // Admin Card Skeletons

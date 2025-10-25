@@ -13,11 +13,11 @@ import {
 import { createUserSchema, updateUserSchema, type CreateUserData, type UpdateUserData } from '@/lib/form-schemas'
 import { toastHelpers } from '@/lib/toast-helpers'
 import apiClient from '@/api/client'
-import type { User } from '@/types'
+import type { UserInfo } from '@/types'
 import { X } from 'lucide-react'
 
 interface UserFormProps {
-  user?: User // If provided, we're editing; otherwise creating
+  user?: UserInfo
   onSuccess?: () => void
   onCancel?: () => void
   mode?: 'create' | 'edit'
@@ -56,27 +56,27 @@ export function UserForm({ user, onSuccess, onCancel, mode = 'create' }: UserFor
   // Create mutation
   const createMutation = useMutation({
     mutationFn: (data: CreateUserData) => apiClient.createUser(data),
-    onSuccess: (response) => {
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['users'] })
       toastHelpers.userCreated(`${form.getValues('first_name')} ${form.getValues('last_name')}`)
       form.reset()
       onSuccess?.()
     },
     onError: (error) => {
-      toastHelpers.apiError('Create user', error)
+      toastHelpers.apiError('Tạo người dùng mới', error.message)
     },
   })
 
   // Update mutation  
   const updateMutation = useMutation({
     mutationFn: (data: UpdateUserData) => apiClient.updateUser(data.id.toString(), data),
-    onSuccess: (response) => {
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['users'] })
-      toastHelpers.apiSuccess('Update', `User ${form.getValues('first_name')} ${form.getValues('last_name')}`)
+      toastHelpers.apiSuccess('Cập nhật thông tin người dùng')
       onSuccess?.()
     },
     onError: (error) => {
-      toastHelpers.apiError('Update user', error)
+      toastHelpers.apiError('Cập nhật thông tin người dùng', error.message)
     },
   })
 

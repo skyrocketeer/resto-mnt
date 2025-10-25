@@ -54,7 +54,7 @@ export function ProductGrid({ products, onProductSelect, isLoading }: ProductGri
           <Card 
             key={product.id} 
             className={`overflow-hidden transition-all hover:shadow-lg cursor-pointer ${
-              !product.is_available ? 'opacity-50' : ''
+              product.stock_number > 0 ? '' : 'opacity-50'
             }`}
           >
             <CardContent className="p-4">
@@ -73,15 +73,14 @@ export function ProductGrid({ products, onProductSelect, isLoading }: ProductGri
                 )}
                 
                 {/* Category Color Badge */}
-                {product.category && (
+                {product.category_id && (
                   <div 
-                    className="absolute top-2 left-2 w-3 h-3 rounded-full"
-                    style={{ backgroundColor: product.category.color || '#6B7280' }}
+                    className="absolute top-2 left-2 w-3 h-3 rounded-full bg-[#6B7280]"
                   />
                 )}
 
                 {/* Unavailable Overlay */}
-                {!product.is_available && (
+                {product.stock_number > 0 && (
                   <div className="absolute inset-0 bg-black/50 rounded-lg flex items-center justify-center">
                     <span className="text-white text-sm font-medium">Out of Stock</span>
                   </div>
@@ -117,7 +116,7 @@ export function ProductGrid({ products, onProductSelect, isLoading }: ProductGri
                 {/* Add to Cart Button */}
                 <Button
                   onClick={() => onProductSelect(product)}
-                  disabled={!product.is_available}
+                  // disabled={!product.is_available}
                   className="w-full text-sm"
                   size="sm"
                 >
@@ -132,18 +131,14 @@ export function ProductGrid({ products, onProductSelect, isLoading }: ProductGri
                   {product.sku && (
                     <span>SKU: {product.sku}</span>
                   )}
-                  {product.category && (
+                  {/* {product.category_id && (
                     <Badge 
                       variant="outline" 
-                      className="text-xs"
-                      style={{ 
-                        borderColor: product.category.color || '#6B7280',
-                        color: product.category.color || '#6B7280'
-                      }}
+                      className="text-xs bg-[#6B7280] text-white"
                     >
-                      {product.category.name}
+                      {product.category_id?.name || 'Uncategorized'}
                     </Badge>
-                  )}
+                  )} */}
                 </div>
               </div>
             </CardContent>

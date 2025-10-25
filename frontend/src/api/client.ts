@@ -9,7 +9,6 @@ import type {
   Category,
   DiningTable,
   Order,
-  OrderItem,
   Payment,
   CreateOrderRequest,
   UpdateOrderStatusRequest,
@@ -18,13 +17,13 @@ import type {
   DashboardStats,
   SalesReportItem,
   OrdersReportItem,
-  KitchenOrder,
   TableStatus,
   OrderFilters,
   ProductFilters,
   TableFilters,
   OrderStatus,
 } from '@/types';
+import type { CreateCategoryData, UpdateCategoryData, CreateProductData, UpdateProductData, CreateUserData, UpdateUserData } from '@/lib/form-schemas';
 
 class APIClient {
   private client: AxiosInstance;
@@ -179,8 +178,8 @@ class APIClient {
   }
 
   // Order endpoints
-  async getOrders(filters?: OrderFilters): Promise<PaginatedResponse<Order[]>> {
-    return this.request({
+  async getOrders(filters?: OrderFilters): Promise<PaginatedResponse<Order>> {
+    return this.requestWithPagination({
       method: 'GET',
       url: '/orders',
       params: filters,
@@ -341,7 +340,7 @@ class APIClient {
     });
   }
 
-  async createUser(userData: UserInfo): Promise<APIResponse<UserInfo>> {
+  async createUser(userData: CreateUserData): Promise<APIResponse<UserInfo>> {
     return this.request({
       method: 'POST',
       url: '/admin/users',
@@ -349,7 +348,7 @@ class APIClient {
     });
   }
 
-  async updateUser(id: string, userData: UserInfo): Promise<APIResponse<UserInfo>> {
+  async updateUser(id: string, userData: UpdateUserData): Promise<APIResponse<UserInfo>> {
     return this.request({
       method: 'PATCH',
       url: `/admin/users/${id}`,
@@ -365,11 +364,11 @@ class APIClient {
   }
 
   // Admin-specific product management
-  async createProduct(productData: Product): Promise<APIResponse<Product>> {
+  async createProduct(productData: CreateProductData): Promise<APIResponse<Product>> {
     return this.request({ method: 'POST', url: '/admin/products', data: productData });
   }
 
-  async updateProduct(id: string, productData: Product): Promise<APIResponse<Product>> {
+  async updateProduct(id: string, productData: UpdateProductData): Promise<APIResponse<Product>> {
     return this.request({ method: 'PUT', url: `/admin/products/${id}`, data: productData });
   }
 
@@ -378,11 +377,11 @@ class APIClient {
   }
 
   // Admin-specific category management  
-  async createCategory(categoryData: Category): Promise<APIResponse<Category>> {
+  async createCategory(categoryData: CreateCategoryData): Promise<APIResponse<Category>> {
     return this.request({ method: 'POST', url: '/admin/categories', data: categoryData });
   }
 
-  async updateCategory(id: string, categoryData: Category): Promise<APIResponse<Category>> {
+  async updateCategory(id: string, categoryData: UpdateCategoryData): Promise<APIResponse<Category>> {
     return this.request({ method: 'PUT', url: `/admin/categories/${id}`, data: categoryData });
   }
 

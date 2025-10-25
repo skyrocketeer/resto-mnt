@@ -32,16 +32,16 @@ export function ReadyOrdersNotification({
   // Fetch ready orders for pickup
   const { data: ordersResponse, refetch } = useQuery({
     queryKey: ['counterReadyOrders'],
-    queryFn: () => apiClient.getOrders({ status: ['ready'] }),
+    queryFn: () => apiClient.getOrders({ status: ['ready'] })
+      .then(response => response.data.order || []),
     refetchInterval: autoRefresh ? 2000000 : false, // 2-second refresh for real-time
-    select: (data) => data.data || [],
   });
 
-  const orders: ReadyOrder[] = (ordersResponse || []).map(order => ({
+  const orders: ReadyOrder[] = ordersResponse?.map(order => ({
     ...order,
     readyTime: calculateReadyTime(order.updated_at || order.created_at),
     isNewlyReady: !previousReadyOrders.has(order.id),
-  }));
+  })) || [];
 
   // Calculate time since order became ready
   function calculateReadyTime(updatedAt: string): number {

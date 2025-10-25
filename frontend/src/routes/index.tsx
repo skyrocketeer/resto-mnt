@@ -25,9 +25,22 @@ function HomePage() {
 
   // Check authentication - ONLY after localStorage is loaded
   console.log('Checking auth - isAuthenticated:', apiClient.isAuthenticated(), 'user:', user)
-  if (!apiClient.isAuthenticated() || !user) {
+  if (!apiClient.isAuthenticated()) {
     console.log('Not authenticated, redirecting to login')
     return <Navigate to="/login" />
+  }
+  
+  // If authenticated but user data is still loading, show loading
+  if (!user) {
+    console.log('Authenticated but user data still loading...')
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading user data...</p>
+        </div>
+      </div>
+    )
   }
 
   // Redirect admin users to admin panel
@@ -39,4 +52,3 @@ function HomePage() {
   console.log('User authenticated, rendering role-based layout for user:', user)
   return <RoleBasedLayout />
 }
-

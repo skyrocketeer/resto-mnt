@@ -1,6 +1,7 @@
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useMemo } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Form } from '@/components/ui/form'
 import { Button } from '@/components/ui/button'
@@ -31,10 +32,24 @@ export function ProductForm({ product, onSuccess, onCancel, mode = 'create' }: P
   const isEditing = mode === 'edit' && product
 
   // Fetch categories for dropdown
-  const { data: categories = [] } = useQuery({
+  const categoriesQuery = useQuery({
     queryKey: ['categories'],
-    queryFn: () => apiClient.getCategories().then(res => res.data)
+    queryFn: () => apiClient.getCategories()
   })
+  
+  // Extract categories from paginated response
+  const categories = useMemo(() => {
+    if (!categoriesQuery.data?.data) return []
+    
+    // Find the array of categories in the data object (it could be under any key)
+    const data = categoriesQuery.data.data
+    for (const key in data) {
+      if (Array.isArray(data[key]) && data[key].length > 0 && data[key][0]?.id) {
+        return data[key] as Category[]
+      }
+    }
+    return []
+  }, [categoriesQuery.data])
 
   // Create category options for select field
   const categoryOptions = categories.map(cat => ({
@@ -52,16 +67,14 @@ export function ProductForm({ product, onSuccess, onCancel, mode = 'create' }: P
         price: product.price,
         category_id: product.category_id,
         image_url: product.image_url || '',
-        status: product.status as any,
         preparation_time: product.preparation_time || 5,
       }
     : {
         name: '',
         description: '',
         price: 0,
-        category_id: categories[0]?.id || 1,
+        category_id: categories[0]?.id || '',
         image_url: '',
-        status: 'active' as const,
         preparation_time: 5,
       }
 
@@ -77,12 +90,12 @@ export function ProductForm({ product, onSuccess, onCancel, mode = 'create' }: P
       queryClient.invalidateQueries({ queryKey: ['admin-products'] })
       queryClient.invalidateQueries({ queryKey: ['products'] })
       queryClient.invalidateQueries({ queryKey: ['categories'] })
-      toastHelpers.productCreated(form.getValues('name'))
+      toastHelpers.productCreated(form.getValues('name') || '')
       form.reset()
       onSuccess?.()
     },
     onError: (error) => {
-      toastHelpers.apiError('Create product', error)
+      toastHelpers.apiError('Tạo mới sản phẩm', error.message)
     },
   })
 
@@ -97,7 +110,7 @@ export function ProductForm({ product, onSuccess, onCancel, mode = 'create' }: P
       onSuccess?.()
     },
     onError: (error) => {
-      toastHelpers.apiError('Update product', error)
+      toastHelpers.apiError('Cập nhật thông tin sản phẩm', error.message)
     },
   })
 
@@ -207,13 +220,13 @@ export function ProductForm({ product, onSuccess, onCancel, mode = 'create' }: P
                 description="Product category for menu organization"
               />
               
-              <SelectField
+              {/* <SelectField
                 control={form.control}
                 name="status"
                 label="Status"
                 options={productStatusOptions}
                 description="Active products appear on the menu"
-              />
+              /> */}
             </div>
 
             {/* Action Buttons */}

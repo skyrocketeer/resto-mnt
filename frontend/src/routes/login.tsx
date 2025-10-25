@@ -19,11 +19,6 @@ function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')
 
-  // Check if already authenticated
-  if (apiClient.isAuthenticated()) {
-    return <Navigate to="/" />
-  }
-
   const loginMutation = useMutation({
     mutationFn: async (credentials: LoginRequest) => {
       const response: APIResponse<LoginResponse> = await apiClient.login(credentials)
@@ -36,6 +31,10 @@ function LoginPage() {
         apiClient.setAuthToken(data.data.token)
         localStorage.setItem('pos_user', JSON.stringify(data.data.user))
         console.log('Auth token set, redirecting to home...')
+        
+        // Trigger custom event to notify UserContext about login
+        window.dispatchEvent(new Event('userLogin'))
+        
         setTimeout(() => {
           router.navigate({ to: '/' })
         }, 100)

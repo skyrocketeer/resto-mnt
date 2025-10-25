@@ -115,7 +115,7 @@ ${customerName ? `Customer: ${customerName}` : ''}
 --------------------------------
 ITEMS:
 ${items.map(item => 
-  `${item.quantity}x ${item.product.name.padEnd(20)} ${formatCurrency(item.product.price * item.quantity)}`
+  `${item.quantity}x ${(item?.product?.name || 'Product').padEnd(20)} ${formatCurrency((item?.product?.price || 0) * item.quantity)}`
 ).join('\n')}
 
 --------------------------------
@@ -198,11 +198,11 @@ Thank you for your business!
                     <div>
                       <span className="font-medium">{item.quantity}x</span> {item.product.name}
                       <div className="text-xs text-gray-500">
-                        @ {formatCurrency(item.product.price)} each
+                        @ {formatCurrency(item?.product?.price || 0)} each
                       </div>
                     </div>
                     <span className="font-semibold">
-                      {formatCurrency(item.product.price * item.quantity)}
+                      {formatCurrency((item?.product?.price || 0) * item.quantity)}
                     </span>
                   </div>
                 ))}
